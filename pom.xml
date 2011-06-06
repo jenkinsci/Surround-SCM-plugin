@@ -7,11 +7,43 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-<<<<<<< HEAD
-  <groupId>SeapineSoftware</groupId>
-  <artifactId>SurroundSCMPlugin</artifactId>
+  <artifactId>Surround-SCM-plugin</artifactId>
+  <name>Seapine Surround SCM - Jenkins Plugin</name>
   <version>1.0</version>
   <packaging>hpi</packaging>
+  <url>http://wiki.jenkins-ci.org/display/JENKINS/Surround+SCM+Plugin</url>
+
+  <scm>    
+    <connection>scm:git:ssh://github.com/jenkinsci/Surround-SCM-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/Surround-SCM-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/Surround-SCM-Plugin</url>  
+  </scm>
+
+  <developers>
+    <developer>
+      <name>Dan Klima</name>
+      <email>klimad@seapine.com</email>
+    </developer>
+  </developers>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <goals>deploy</goals>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <distributionManagement>
+    <repository>
+      <id>maven.jenkins-ci.org</id>
+      <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
+    </repository>
+  </distributionManagement>
+
 
   <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
   <repositories>
@@ -27,27 +59,5 @@
       <url>http://maven.glassfish.org/content/groups/public/</url>
     </pluginRepository>
   </pluginRepositories>
-
-  <scm>    
-    <connection>scm:git:ssh://github.com/jenkinsci/Surround-SCM-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/Surround-SCM-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/Surround-SCM-Plugin</url>  
-  </scm>
-
-
-  <developers>
-    <developer>
-      <name>Dan Klima</name>
-      <email>klimad@seapine.com</email>
-    </developer>
-  </developers>
-
-=======
-  <artifactId>SurroundSCMPlugin</artifactId>
-  <name>Seapine Surround SCM - Jenkins Plugin</name>
-  <version>1.0</version>
-  <packaging>hpi</packaging>
   
-  <url>http://wiki.jenkins-ci.org/display/HUDSON/Surround+SCM+Plugin</url>
->>>>>>> 4cc434d44d0e7ddfe8d33a77af30c4b6bc60c293
 </project>
