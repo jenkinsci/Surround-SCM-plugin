@@ -1,0 +1,7 @@
+SCMBranch=SSMainline
+SCMRepository=SSMainline/3rdPartyCode/SurroundSCM_HudsonPlugin/src/main/resources/hudson/plugins/SeapineSoftware/SurroundSCM
+SCMMainlineUUID={0f2bba70-bcd7-460c-9ce0-ba809b39b348}
+SCMBranchRepositoryID=333759
+config.jelly;779155816;1;1307042955;
+global.jelly;2790958798;1;1307042955;
+help-name.html;4107102241;1;1307042955;
