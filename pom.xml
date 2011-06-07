@@ -9,14 +9,14 @@
 
   <artifactId>Surround-SCM-plugin</artifactId>
   <name>Seapine Surround SCM - Jenkins Plugin</name>
-  <version>1.0</version>
+  <version>1.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Surround+SCM+Plugin</url>
 
   <scm>    
     <connection>scm:git:ssh://github.com/jenkinsci/Surround-SCM-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/Surround-SCM-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/Surround-SCM-Plugin</url>  
+    <url>https://github.com/jenkinsci/Surround-SCM-plugin</url>  
   </scm>
 
   <developers>
