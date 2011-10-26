@@ -1,6 +1,0 @@
-SCMBranch=SSMainline
-SCMRepository=SSMainline/3rdPartyCode/SurroundSCM_HudsonPlugin/src/main/resources/hudson/plugins/SeapineSoftware/SurroundSCMChangeLogSet
-SCMMainlineUUID={0f2bba70-bcd7-460c-9ce0-ba809b39b348}
-SCMBranchRepositoryID=333760
-digest.jelly;3307911857;1;1307042955;
-index.jelly;2482519527;1;1307042955;

@@ -1,8 +1,0 @@
-SCMBranch=SSMainline
-SCMRepository=SSMainline/3rdPartyCode/SurroundSCM_HudsonPlugin/src/main/java/hudson/plugins/SeapineSoftware
-SCMMainlineUUID={0f2bba70-bcd7-460c-9ce0-ba809b39b348}
-SCMBranchRepositoryID=333754
-SurroundSCM.java;2317070538;1;1307042955;
-SurroundSCMChangeLogParser.java;678979747;1;1307042955;
-SurroundSCMChangeLogSet.java;1471986032;1;1307042955;
-SurroundSCMRevisionState.java;501111620;1;1307042955;
