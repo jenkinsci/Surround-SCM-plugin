@@ -63,9 +63,10 @@ public final class SurroundSCM extends SCM {
   // if there are < changesThreshold changes, but > 0 changes, then it's
   // significant
   final int changesThreshold = 5;
-  final int pluginVersion = 6;
+  final int pluginVersion = 8;
   
   // config options
+  private String rsaKeyPath;
   private String server;  
   private String serverPort;
   private String userName ;
@@ -76,6 +77,14 @@ public final class SurroundSCM extends SCM {
   
   
   //getters and setters
+  public String getRsaKeyPath() {
+    return rsaKeyPath;
+  }
+
+  public void setRsaKeyPath(String rsaKeyPath) {
+    this.rsaKeyPath = rsaKeyPath;
+  }
+  
   public String getServer() {
     return server;
   }
@@ -146,8 +155,9 @@ public final class SurroundSCM extends SCM {
   public static final String SURROUND_DATETIME_FORMAT_STR_2 = "yyyyMMddHH:mm:ss";
 
   @DataBoundConstructor
-  public SurroundSCM(String server, String serverPort, String userName,
+  public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
       String password, String branch, String repository, String surroundSCMExecutable) {
+    this.rsaKeyPath = rsaKeyPath;
     this.server = server;
     this.serverPort = serverPort;
     this.userName = userName;
@@ -208,7 +218,11 @@ public final class SurroundSCM extends SCM {
     
     Date now = new Date();
     File temporaryFile = File.createTempFile("changes", "txt");
+    temporaryFile.deleteOnExit();
+
     listener.getLogger().println("Calculating changes since build #" + lastBuildNum + " which happened at " + scm_datetime_formatter.format(lastBuild) + " pluginVer: " + pluginVersion);
+
+    temporaryFile.delete();
     
     double countChanges = determineChangeCount(launcher, workspace, listener, lastBuild,now,temporaryFile);
         
@@ -242,7 +256,12 @@ public final class SurroundSCM extends SCM {
     cmd.add("/" );
     cmd.add("-wreplace");
     cmd.addMasked("-y".concat(userName).concat(":").concat(password));
-    cmd.add("-z".concat(server).concat(":").concat(serverPort));
+    if(rsaKeyPath != null && !rsaKeyPath.isEmpty()) {
+      cmd.add("-z".concat(rsaKeyPath));
+    }
+    else {
+      cmd.add("-z".concat(server).concat(":").concat(serverPort));
+    }
     cmd.add("-b".concat(branch));
     cmd.add("-p".concat(repository));
     cmd.add("-d".concat(workspace.getRemote()));
@@ -299,7 +318,12 @@ public final class SurroundSCM extends SCM {
     cmd.add("/");
     cmd.add("-d".concat(dateRange));
     cmd.addMasked("-y".concat(userName).concat(":").concat(password));
-    cmd.add("-z".concat(server).concat(":").concat(serverPort));
+    if(rsaKeyPath != null && !rsaKeyPath.isEmpty()) {
+      cmd.add("-z".concat(rsaKeyPath));
+    }
+    else {
+      cmd.add("-z".concat(server).concat(":").concat(serverPort));
+    }
     cmd.add("-b".concat(branch));
     cmd.add("-p".concat(repository));    
     cmd.add("-r");    
@@ -352,7 +376,12 @@ public final class SurroundSCM extends SCM {
     cmd.add("/");
     cmd.add("-d".concat(dateRange));
     cmd.addMasked("-y".concat(userName).concat(":").concat(password));
-    cmd.add("-z".concat(server).concat(":").concat(serverPort));
+    if(rsaKeyPath != null && !rsaKeyPath.isEmpty()) {
+      cmd.add("-z".concat(rsaKeyPath));
+    }
+    else {
+      cmd.add("-z".concat(server).concat(":").concat(serverPort));
+    }
     cmd.add("-b".concat(branch));
     cmd.add("-p".concat(repository));
     cmd.add("-r");  
