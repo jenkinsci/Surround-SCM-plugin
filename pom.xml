@@ -10,7 +10,7 @@
   <groupId>org.jenkins-ci.plugins</groupId>
   <artifactId>Surround-SCM-plugin</artifactId>
   <name>Seapine Surround SCM - Jenkins Plugin</name>
-  <version>1.7-SNAPSHOT</version>
+  <version>1.7</version>
   <packaging>hpi</packaging>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Surround+SCM+Plugin</url>
 
