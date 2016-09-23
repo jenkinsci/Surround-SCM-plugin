@@ -1,28 +1,18 @@
 package hudson.scm;
 
-import java.io.*;
-import java.text.SimpleDateFormat;
-import java.util.*;
-
-import net.sf.json.JSONObject;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Run;
-import hudson.model.BuildListener;
-import hudson.model.TaskListener;
-import hudson.scm.ChangeLogParser;
-import hudson.scm.PollingResult;
-import hudson.scm.SCMDescriptor;
-import hudson.scm.SCM;
-import hudson.scm.SCMRevisionState;
+import hudson.model.*;
 import hudson.util.ArgumentListBuilder;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
+
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @Extension
 public final class SurroundSCM extends SCM {
@@ -62,8 +52,8 @@ public final class SurroundSCM extends SCM {
   // incomparable
   // if there are < changesThreshold changes, but > 0 changes, then it's
   // significant
-  final int changesThreshold = 5;
-  final int pluginVersion = 8;
+  private final int changesThreshold = 5;
+  private final int pluginVersion = 8;
 
   // config options
   private String rsaKeyPath;
@@ -74,6 +64,7 @@ public final class SurroundSCM extends SCM {
   private String branch ;
   private String repository;
   private String surroundSCMExecutable;
+  private boolean bIncludeOutput;
 
 
   //getters and setters
@@ -133,6 +124,14 @@ public final class SurroundSCM extends SCM {
     this.repository = repository;
   }
 
+  public boolean getIncludeOutput() {
+    return bIncludeOutput;
+  }
+
+  public void setIncludeOutput(boolean includeOutput) {
+    this.bIncludeOutput = includeOutput;
+  }
+
   public String getSurroundSCMExecutable() {
     if (surroundSCMExecutable == null)
       return "sscm";
@@ -151,12 +150,13 @@ public final class SurroundSCM extends SCM {
   @Extension
   public static final SurroundSCMDescriptor DESCRIPTOR = new SurroundSCMDescriptor();
 
-  public static final String SURROUND_DATETIME_FORMAT_STR = "yyyyMMddHHmmss";
-  public static final String SURROUND_DATETIME_FORMAT_STR_2 = "yyyyMMddHH:mm:ss";
+  private static final String SURROUND_DATETIME_FORMAT_STR = "yyyyMMddHHmmss";
+  private static final String SURROUND_DATETIME_FORMAT_STR_2 = "yyyyMMddHH:mm:ss";
 
   @DataBoundConstructor
   public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
-                     String password, String branch, String repository, String surroundSCMExecutable) {
+                     String password, String branch, String repository, String surroundSCMExecutable,
+                     boolean includeOutput) {
     this.rsaKeyPath = rsaKeyPath;
     this.server = server;
     this.serverPort = serverPort;
@@ -165,6 +165,24 @@ public final class SurroundSCM extends SCM {
     this.branch = branch;
     this.repository = repository;
     this.surroundSCMExecutable = surroundSCMExecutable;
+    this.bIncludeOutput = true; // Leaving this here for future functionality.
+  }
+
+  /**
+   * @deprecated Deprecated as of release v9, added option to include // exclude output.
+   * @param rsaKeyPath
+   * @param server
+   * @param serverPort
+   * @param userName
+   * @param password
+   * @param branch
+   * @param repository
+   * @param surroundSCMExecutable
+   */
+  public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
+                     String password, String branch, String repository, String surroundSCMExecutable)
+  {
+    this(rsaKeyPath, server, serverPort, userName, password, branch, repository, surroundSCMExecutable, true);
   }
 
   public SurroundSCM() {
@@ -244,7 +262,7 @@ public final class SurroundSCM extends SCM {
                           FilePath workspace, BuildListener listener, File changelogFile)
         throws IOException, InterruptedException {
 
-    boolean returnValue = true;
+    boolean returnValue;
 
     SimpleDateFormat scm_datetime_formatter = new SimpleDateFormat(SURROUND_DATETIME_FORMAT_STR_2);
 
@@ -252,6 +270,9 @@ public final class SurroundSCM extends SCM {
       listener.getLogger().println("server: "+server);
 
     Date currentDate = new Date(); //defaults to current
+
+    EnvVars environment = build.getEnvironment(listener);
+    EnvVarsUtils.overrideAll(environment, build.getBuildVariables());
 
     ArgumentListBuilder cmd = new ArgumentListBuilder();
     cmd.add(getSurroundSCMExecutable());//will default to sscm user can put in path
@@ -270,9 +291,12 @@ public final class SurroundSCM extends SCM {
     cmd.add("-d".concat(workspace.getRemote()));
     cmd.add("-r");
     cmd.add("-s" + scm_datetime_formatter.format(currentDate));
+    if(!bIncludeOutput)
+    {
+      cmd.add("-q");
+    }
 
-    int cmdResult = launcher.launch().cmds(cmd).envs(new String[0])
-          .stdin(null).stdout(listener.getLogger()).pwd(workspace).join();
+    int cmdResult = launcher.launch().envs(environment).cmds(cmd).stdout(listener.getLogger()).pwd(workspace).join();
     if (cmdResult == 0)
     {
       final Run<?, ?> lastBuild = build.getPreviousBuild();
@@ -290,7 +314,7 @@ public final class SurroundSCM extends SCM {
       build.addAction(scmRevisionState);
       listener.getLogger().println("Checkout calculated ScmRevisionState for build #" + build.getNumber() + " to be the datetime " + scm_datetime_formatter.format(currentDate) + " pluginVer: " + pluginVersion);
 
-      returnValue = captureChangeLog(launcher, workspace,listener, lastBuildDate, currentDate, changelogFile);
+      returnValue = captureChangeLog(launcher, workspace,listener, lastBuildDate, currentDate, changelogFile, environment);
     }
     else
       returnValue = false;
@@ -305,7 +329,8 @@ public final class SurroundSCM extends SCM {
   }
 
   private boolean captureChangeLog(Launcher launcher, FilePath workspace,
-                                   BuildListener listener, Date lastBuildDate, Date currentDate, File changelogFile) throws IOException, InterruptedException {
+                                   BuildListener listener, Date lastBuildDate, Date currentDate, File changelogFile,
+                                   EnvVars env) throws IOException, InterruptedException {
 
     boolean result = true;
 
@@ -338,7 +363,7 @@ public final class SurroundSCM extends SCM {
       try {
 
 
-        int cmdResult = launcher.launch().cmds(cmd).envs(new String[0]).stdin(null).stdout(bos).pwd(workspace).join();
+        int cmdResult = launcher.launch().cmds(cmd).envs(env).stdout(bos).pwd(workspace).join();
         if (cmdResult != 0)
         {
           listener.fatalError("Changelog failed with exit code " + cmdResult);
@@ -396,7 +421,7 @@ public final class SurroundSCM extends SCM {
       BufferedOutputStream bos = new BufferedOutputStream(os);
 
       try {
-        int cmdResult = launcher.launch().cmds(cmd).envs(new String[0]).stdin(null).stdout(bos).pwd(workspace).join();
+        int cmdResult = launcher.launch().cmds(cmd).stdout(bos).pwd(workspace).join();
         if (cmdResult != 0)
         {
           listener.fatalError("Determine changes count failed with exit code " + cmdResult);
