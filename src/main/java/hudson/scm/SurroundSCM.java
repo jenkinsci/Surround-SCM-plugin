@@ -359,7 +359,8 @@ public final class SurroundSCM extends SCM {
     FileOutputStream os = new FileOutputStream(changelogFile);
     try {
       BufferedOutputStream bos = new BufferedOutputStream(os);
-      PrintWriter writer = new PrintWriter(new FileWriter(changelogFile));
+      Writer w = new OutputStreamWriter(new FileOutputStream(changelogFile), "UTF-8");
+      PrintWriter writer = new PrintWriter(w);
       try {
 
 
@@ -435,8 +436,9 @@ public final class SurroundSCM extends SCM {
 
     BufferedReader br = null;
     String line = null;
+    InputStreamReader is = new InputStreamReader(new FileInputStream(changelogFile), "UTF-8");
     try{
-      br = new BufferedReader(new FileReader(changelogFile));
+      br = new BufferedReader(is);
       line = br.readLine();
       if (line != null){
         listener.getLogger().println(line);

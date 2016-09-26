@@ -2,16 +2,12 @@ package hudson.scm;
 
 import hudson.model.AbstractBuild;
 import hudson.model.User;
-import hudson.scm.ChangeLogSet;
-import hudson.scm.EditType;
-import hudson.scm.SurroundSCMChangeLogSet;
 import hudson.scm.SurroundSCMChangeLogSet.SurroundSCMChangeLogSetEntry;
+import org.kohsuke.stapler.export.Exported;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-
-import org.kohsuke.stapler.export.Exported;
 
 public final class SurroundSCMChangeLogSet extends ChangeLogSet<SurroundSCMChangeLogSetEntry>
 {
@@ -81,7 +77,9 @@ public final class SurroundSCMChangeLogSet extends ChangeLogSet<SurroundSCMChang
 		public String getComment(){
 			return comment;
 		}	
-		
+
+		public String getDate() { return date; }
+
 		@Override
 		public Collection<String> getAffectedPaths() {
 			Collection<String> col = new ArrayList<String>();

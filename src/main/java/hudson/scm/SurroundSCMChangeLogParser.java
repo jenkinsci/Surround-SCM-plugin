@@ -19,8 +19,9 @@ public class SurroundSCMChangeLogParser extends ChangeLogParser {
     BufferedReader br = null;
 
     boolean foundAnItem=false;
+    InputStreamReader is = new InputStreamReader(new FileInputStream(changelogFile), "UTF-8");
     try{
-      br = new BufferedReader(new FileReader(changelogFile));
+      br = new BufferedReader(is);
       while ((line = br.readLine())!=null)
       {
         //skip the total line
