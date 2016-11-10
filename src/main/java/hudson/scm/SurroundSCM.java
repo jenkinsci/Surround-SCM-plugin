@@ -1,15 +1,18 @@
 package hudson.scm;
 
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.model.*;
+import hudson.*;
+import hudson.model.AbstractBuild;
+import hudson.model.Job;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.util.ArgumentListBuilder;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -22,6 +25,10 @@ public final class SurroundSCM extends SCM {
   public static class SurroundSCMDescriptor extends
         SCMDescriptor<SurroundSCM> {
 
+    @Override
+    public boolean isApplicable(Job project) {
+      return true;
+    }
 
     /**
      * Constructs a new SurroundSCMDescriptor.
@@ -42,8 +49,7 @@ public final class SurroundSCM extends SCM {
     @Override
     public SCM newInstance(StaplerRequest req, JSONObject formData)
           throws FormException {
-      SurroundSCM scm = req.bindJSON(SurroundSCM.class, formData);
-      return scm;
+      return req.bindJSON(SurroundSCM.class, formData);
     }
 
   }
@@ -53,7 +59,7 @@ public final class SurroundSCM extends SCM {
   // if there are < changesThreshold changes, but > 0 changes, then it's
   // significant
   private final int changesThreshold = 5;
-  private final int pluginVersion = 8;
+  private final int pluginVersion = 9;
 
   // config options
   private String rsaKeyPath;
@@ -170,14 +176,6 @@ public final class SurroundSCM extends SCM {
 
   /**
    * @deprecated Deprecated as of release v9, added option to include // exclude output.
-   * @param rsaKeyPath
-   * @param server
-   * @param serverPort
-   * @param userName
-   * @param password
-   * @param branch
-   * @param repository
-   * @param surroundSCMExecutable
    */
   public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
                      String password, String branch, String repository, String surroundSCMExecutable)
@@ -194,52 +192,63 @@ public final class SurroundSCM extends SCM {
     return DESCRIPTOR;
   }
 
-
-  /*
+  /**
    * Calculates the SCMRevisionState that represents the state of the
    * workspace of the given build. The returned object is then fed into the
    * compareRemoteRevisionWith(AbstractProject, Launcher, FilePath,
    * TaskListener, SCMRevisionState) method as the baseline SCMRevisionState
    * to determine if the build is necessary.
+   *
+   * {@inheritDoc}
    */
-    /* KD - We are going to use a command to get the changes from the last build to 
-     * the current date, as such, we don't really need to do anything here
-     */
   @Override
-  public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build,
-                                                 Launcher launcher, TaskListener listener) throws IOException,
-        InterruptedException {
-
+  public SCMRevisionState calcRevisionsFromBuild(@Nonnull Run<?, ?> build,
+                                                 @Nullable FilePath workspace,
+                                                 @Nullable Launcher launcher,
+                                                 @Nonnull TaskListener listener) throws IOException, InterruptedException
+  {
     SimpleDateFormat scm_datetime_formatter = new SimpleDateFormat(SURROUND_DATETIME_FORMAT_STR);
 
-    // this is what we'll return  
-    final Date  lastBuildDate = build.getTime();
-    final int   lastBuildNum  = build.getNumber();
+    final Date lastBuildDate = build.getTime();
+    final int lastBuildNum = build.getNumber();
     SurroundSCMRevisionState scmRevisionState = new SurroundSCMRevisionState(lastBuildDate, lastBuildNum);
     listener.getLogger().println("calcRevisionsFromBuild determined revision for build #" + scmRevisionState.getBuildNumber() + " built originally at " + scm_datetime_formatter.format(scmRevisionState.getDate()) + " pluginVer: " + pluginVersion);
 
     return scmRevisionState;
   }
 
-  @Override
-  /* 
+  /**
+   * {@inheritDoc}
    */
-  protected PollingResult compareRemoteRevisionWith(
-        AbstractProject<?, ?> project, Launcher launcher,
-        FilePath workspace, TaskListener listener, SCMRevisionState baseline)
-        throws IOException, InterruptedException {
+  @Override
+  public boolean requiresWorkspaceForPolling() {
+    return true; // We don't actually NEED a workspace for polling. We are saving our info to a system temp file.
+  }
 
+  @Override
+  public boolean supportsPolling() {
+    return true;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public PollingResult compareRemoteRevisionWith(
+    @Nonnull Job<?, ?> project, @Nullable Launcher launcher, @Nullable FilePath workspace,
+    @Nonnull TaskListener listener, @Nonnull SCMRevisionState baseline) throws IOException, InterruptedException
+  {
     SimpleDateFormat scm_datetime_formatter = new SimpleDateFormat(SURROUND_DATETIME_FORMAT_STR);
 
-    Date  lastBuild = ((SurroundSCMRevisionState)baseline).getDate();
-    int   lastBuildNum = ((SurroundSCMRevisionState)baseline).getBuildNumber();
+    Date lastBuild = ((SurroundSCMRevisionState)baseline).getDate();
+    int lastBuildNum = ((SurroundSCMRevisionState)baseline).getBuildNumber();
 
     Date now = new Date();
-    File temporaryFile = File.createTempFile("changes", "txt");
+    File temporaryFile = File.createTempFile("changes","txt");
 
     listener.getLogger().println("Calculating changes since build #" + lastBuildNum + " which happened at " + scm_datetime_formatter.format(lastBuild) + " pluginVer: " + pluginVersion);
 
-    double countChanges = determineChangeCount(launcher, workspace, listener, lastBuild,now,temporaryFile);
+    double countChanges = determineChangeCount(launcher,  listener, lastBuild, now, temporaryFile);
 
     if(!temporaryFile.delete())
     {
@@ -247,32 +256,34 @@ public final class SurroundSCM extends SCM {
       temporaryFile.deleteOnExit();
     }
 
-    if (countChanges == 0)
+    if(countChanges == 0)
       return PollingResult.NO_CHANGES;
-    else if (countChanges < changesThreshold)
+    else if(countChanges < changesThreshold)
       return PollingResult.SIGNIFICANT;
 
     return PollingResult.BUILD_NOW;
   }
 
-  // Obtains a fresh workspace of the module(s) into the specified directory
-  // of the specified machine. We'll use sscm get
+  /**
+   * Obtains a fresh workspace of the module(s) into the specified directory of the specified machine. We'll use
+   * sscm get.
+   *
+   * {@inheritDoc}
+   */
+  @SuppressWarnings("unchecked")
   @Override
-  public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher,
-                          FilePath workspace, BuildListener listener, File changelogFile)
-        throws IOException, InterruptedException {
-
-    boolean returnValue;
-
+  public void checkout(
+    @Nonnull Run<?, ?> build, @Nonnull Launcher launcher, @Nonnull FilePath workspace, @Nonnull TaskListener listener,
+    @CheckForNull File changelogFile, @CheckForNull SCMRevisionState baseline) throws IOException, InterruptedException
+  {
     SimpleDateFormat scm_datetime_formatter = new SimpleDateFormat(SURROUND_DATETIME_FORMAT_STR_2);
-
-    if (server != null )
-      listener.getLogger().println("server: "+server);
 
     Date currentDate = new Date(); //defaults to current
 
     EnvVars environment = build.getEnvironment(listener);
-    EnvVarsUtils.overrideAll(environment, build.getBuildVariables());
+    if (build instanceof AbstractBuild) {
+      EnvVarsUtils.overrideAll(environment, ((AbstractBuild) build).getBuildVariables());
+    }
 
     ArgumentListBuilder cmd = new ArgumentListBuilder();
     cmd.add(getSurroundSCMExecutable());//will default to sscm user can put in path
@@ -296,31 +307,38 @@ public final class SurroundSCM extends SCM {
       cmd.add("-q");
     }
 
-    int cmdResult = launcher.launch().envs(environment).cmds(cmd).stdout(listener.getLogger()).pwd(workspace).join();
+    //int cmdResult = workspace.createLauncher(listener).launch().envs(environment).cmds(cmd).stdout(listener.getLogger()).join();
+    int cmdResult = launcher.launch().envs(environment).cmds(cmd).stdout(listener.getLogger()).join();
     if (cmdResult == 0)
     {
-      final Run<?, ?> lastBuild = build.getPreviousBuild();
-      final Date lastBuildDate;
+      Date lastBuildDate = new Date();
+      lastBuildDate.setTime(0); // default to January 1, 1970
 
-      if (lastBuild == null) {
-        lastBuildDate = new Date();
-        lastBuildDate.setTime(0); // default to January 1, 1970
-        listener.getLogger().print("Never been built.");
-      } else
-        lastBuildDate = lastBuild.getTimestamp().getTime();
+      if(baseline instanceof SurroundSCMRevisionState) {
+        lastBuildDate = ((SurroundSCMRevisionState) baseline).getDate();
+      }
+      else
+        listener.getLogger().print("No previous build information detected.");
 
       // Setup the revision state based on what we KNOW to be correct information.
-      SurroundSCMRevisionState scmRevisionState = new SurroundSCMRevisionState(currentDate, build.getNumber());
+      SurroundSCMRevisionState scmRevisionState = new SurroundSCMRevisionState(currentDate, build.number);
       build.addAction(scmRevisionState);
-      listener.getLogger().println("Checkout calculated ScmRevisionState for build #" + build.getNumber() + " to be the datetime " + scm_datetime_formatter.format(currentDate) + " pluginVer: " + pluginVersion);
+      listener.getLogger().println("Checkout calculated ScmRevisionState for build #" + build.number + " to be the datetime " + scm_datetime_formatter.format(currentDate) + " pluginVer: " + pluginVersion);
 
-      returnValue = captureChangeLog(launcher, workspace,listener, lastBuildDate, currentDate, changelogFile, environment);
+      if(changelogFile != null)
+        captureChangeLog(launcher, workspace, listener, lastBuildDate, currentDate, changelogFile, environment);
     }
-    else
-      returnValue = false;
 
     listener.getLogger().println("Checkout completed.");
-    return returnValue;
+  }
+
+  @Nonnull
+  @Override
+  public String getKey() {
+    // Key=sscm-ServerName-BranchName-RepositoryPath
+    String unsafeString = String.format("sscm-%s-%s-%s", getServer(), getBranch(), getRepository());
+    String result = Util.getDigestOf(unsafeString);
+    return result;
   }
 
   @Override
@@ -329,7 +347,7 @@ public final class SurroundSCM extends SCM {
   }
 
   private boolean captureChangeLog(Launcher launcher, FilePath workspace,
-                                   BuildListener listener, Date lastBuildDate, Date currentDate, File changelogFile,
+                                   TaskListener listener, Date lastBuildDate, Date currentDate, File changelogFile,
                                    EnvVars env) throws IOException, InterruptedException {
 
     boolean result = true;
@@ -364,7 +382,7 @@ public final class SurroundSCM extends SCM {
       try {
 
 
-        int cmdResult = launcher.launch().cmds(cmd).envs(env).stdout(bos).pwd(workspace).join();
+        int cmdResult = launcher.launch().cmds(cmd).envs(env).stdout(bos).join();
         if (cmdResult != 0)
         {
           listener.fatalError("Changelog failed with exit code " + cmdResult);
@@ -386,9 +404,9 @@ public final class SurroundSCM extends SCM {
     return result;
   }
 
-  private double determineChangeCount(Launcher launcher, FilePath workspace,
-                                      TaskListener listener, Date lastBuildDate, Date currentDate, File changelogFile) throws IOException, InterruptedException {
-
+  private double determineChangeCount(Launcher launcher, TaskListener listener, Date lastBuildDate,
+                                      Date currentDate, File changelogFile) throws IOException, InterruptedException
+  {
     SimpleDateFormat scm_datetime_formatter = new SimpleDateFormat(SURROUND_DATETIME_FORMAT_STR);
 
     double changesCount = 0;
@@ -417,12 +435,15 @@ public final class SurroundSCM extends SCM {
 
     listener.getLogger().println("determineChangeCount executing the command: " + cmd.toString() + " with date range: [ " + dateRange + " ]");
 
+    // TODO: This seems like a stupid hack.  Why are we dumping command output to a text file? Can we guarantee
+    //       that the 'changelogFile' (a temp file on some machine) is at an accessible path wherever this is run?
+    //       why don't we just read the command output straight into memory & immediately process it?
     FileOutputStream os = new FileOutputStream(changelogFile);
     try {
       BufferedOutputStream bos = new BufferedOutputStream(os);
 
       try {
-        int cmdResult = launcher.launch().cmds(cmd).stdout(bos).pwd(workspace).join();
+        int cmdResult = launcher.launch().cmds(cmd).stdout(bos).join();
         if (cmdResult != 0)
         {
           listener.fatalError("Determine changes count failed with exit code " + cmdResult);
