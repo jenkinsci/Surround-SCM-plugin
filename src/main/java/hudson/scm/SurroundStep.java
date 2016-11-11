@@ -10,28 +10,22 @@ import javax.annotation.Nonnull;
  * Runs Surround SCM using {@link SurroundSCM}
  */
 public class SurroundStep extends SCMStep {
+  private final String sscm_url;
   private final String username;
   private final String password;
   private final String RSAKeyFile;
   private final String sscmPath;
 
-  private final String server;
-  private final String port;
-  private final String branch;
-  private final String repository;
 
   @DataBoundConstructor
   public SurroundStep(String sscm_url, String username, String password, String sscmPath, String RSAKeyFile)
   {
+    this.sscm_url = sscm_url;
     this.username = username;
     this.password = password;
     this.sscmPath = sscmPath;
     this.RSAKeyFile = RSAKeyFile;
 
-    this.server = SSCMUtils.getServerFromURL(sscm_url);
-    this.port = SSCMUtils.getPortFromURL(sscm_url);
-    this.branch = SSCMUtils.getBranchFromURL(sscm_url);
-    this.repository = SSCMUtils.getRepositoryFromURL(sscm_url);
   }
 
   @Nonnull
@@ -40,7 +34,32 @@ public class SurroundStep extends SCMStep {
     // Parse Server out of combined variable
     // Parse Branch out of combined
     // Parse Repository path
-    return new SurroundSCM(RSAKeyFile, server, port, username, password, branch, repository, "Executable", true);
+
+    String server = SSCMUtils.getServerFromURL(sscm_url);
+    String port = SSCMUtils.getPortFromURL(sscm_url);
+    String branch = SSCMUtils.getBranchFromURL(sscm_url);
+    String repository = SSCMUtils.getRepositoryFromURL(sscm_url);
+    return new SurroundSCM(RSAKeyFile, server, port, username, password, branch, repository, sscmPath, true);
+  }
+
+  public String getSscm_url() {
+    return sscm_url;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public String getRSAKeyFile() {
+    return RSAKeyFile;
+  }
+
+  public String getSscmPath() {
+    return sscmPath;
   }
 
   @Extension
