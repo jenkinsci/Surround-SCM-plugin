@@ -10,28 +10,28 @@
     Creates a text field that shows the value of the "name" property.
     When submitted, it will be passed to the corresponding constructor parameter.
   -->
-    <f:entry title="CLI (sscm) ">
-      <f:textbox name="SurroundSCM.surroundSCMExecutable" value="${scm.surroundSCMExecutable}" />
+    <f:entry title="CLI (sscm)" field="surroundSCMExecutable" >
+      <f:textbox />
     </f:entry>
-    <f:entry title="RSA key path">
-      <f:textbox name="SurroundSCM.rsaKeyPath" value="${scm.rsaKeyPath}" />
+    <f:entry title="RSA key path" field="rsaKeyPath">
+      <f:textbox />
     </f:entry>
-    <f:entry title="Server name">
-      <f:textbox name="SurroundSCM.server" value="${scm.server}" />
+    <f:entry title="Server name" field="server">
+      <f:textbox />
     </f:entry>
-    <f:entry title="Server port">
-      <f:textbox name="SurroundSCM.serverPort" value="${scm.serverPort}" />
+    <f:entry title="Server port" field="serverPort">
+      <f:textbox />
     </f:entry>
-    <f:entry title="Username">
-      <f:textbox name="SurroundSCM.userName" value="${scm.userName}" />
+    <f:entry title="Username" field="userName">
+      <f:textbox />
     </f:entry>
-    <f:entry title="Password">
-      <f:password name="SurroundSCM.password" value="${scm.password}" />
+    <f:entry title="Password" field="password">
+      <f:password />
     </f:entry>
-   <f:entry title="Branch">
-      <f:textbox name="SurroundSCM.branch" value="${scm.branch}" />
+   <f:entry title="Branch" field="branch">
+      <f:textbox />
     </f:entry>
-    <f:entry title="Repository">
-      <f:textbox name="SurroundSCM.repository" value="${scm.repository}" />
+    <f:entry title="Repository" field="repository">
+      <f:textbox />
     </f:entry>
 </j:jelly>
