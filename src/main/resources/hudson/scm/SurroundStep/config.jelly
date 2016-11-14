@@ -11,9 +11,6 @@
    <f:entry field="password" title="Password">
       <f:password  />
    </f:entry>
-   <f:entry field="sscmPath" title="CLI (sscm) ">
-      <f:textbox  />
-   </f:entry>
    <f:entry field="RSAKeyFile" title="RSA key path">
       <f:textbox  />
    </f:entry>

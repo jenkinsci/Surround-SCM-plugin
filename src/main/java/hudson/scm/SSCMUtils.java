@@ -1,5 +1,10 @@
 package hudson.scm;
 
+import hudson.FilePath;
+import hudson.model.Computer;
+import hudson.model.Node;
+import jenkins.model.Jenkins;
+
 /**
  * Class of basic utils for working with 'sscm://' urls.
  */
@@ -131,6 +136,24 @@ public class SSCMUtils {
 
     // Check section 3 & 4
     return !(splitURL[2].isEmpty() || splitURL[3].isEmpty());
-
   }
+
+  public static Node workspaceToNode(FilePath workspace)
+  {
+    Jenkins j = Jenkins.getActiveInstance();
+    if(workspace != null && workspace.isRemote())
+    {
+      for(Computer c : j.getComputers())
+      {
+        if(c.getChannel() == workspace.getChannel())
+        {
+          Node n = c.getNode();
+          if(n != null)
+            return n;
+        }
+      }
+    }
+    return j;
+  }
+
 }

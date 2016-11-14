@@ -1,11 +1,9 @@
 package hudson.scm;
 
 import hudson.*;
-import hudson.model.AbstractBuild;
-import hudson.model.Job;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.util.ArgumentListBuilder;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
@@ -69,7 +67,12 @@ public final class SurroundSCM extends SCM {
   private String password ;
   private String branch ;
   private String repository;
+
+  @Deprecated
   private String surroundSCMExecutable;
+
+  private String sscm_tool_name;
+
   private boolean bIncludeOutput;
 
 
@@ -138,18 +141,6 @@ public final class SurroundSCM extends SCM {
     this.bIncludeOutput = includeOutput;
   }
 
-  public String getSurroundSCMExecutable() {
-    if (surroundSCMExecutable == null)
-      return "sscm";
-    else
-      return surroundSCMExecutable;
-  }
-
-  public void setSurroundSCMExecutable(String surroundSCMExecutable) {
-    this.surroundSCMExecutable = surroundSCMExecutable;
-  }
-
-
   /**
    * Singleton descriptor.
    */
@@ -160,6 +151,22 @@ public final class SurroundSCM extends SCM {
   private static final String SURROUND_DATETIME_FORMAT_STR_2 = "yyyyMMddHH:mm:ss";
 
   @DataBoundConstructor
+  public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
+                     String password, String branch,  String repository)
+  {
+    this.rsaKeyPath = rsaKeyPath;
+    this.server = server;
+    this.serverPort = serverPort;
+    this.userName = userName;
+    this.password = password;
+    this.branch = branch;
+    this.repository = repository;
+    this.bIncludeOutput = true; // Leaving this here for future functionality.
+
+    this.surroundSCMExecutable = null;
+  }
+
+  @Deprecated
   public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
                      String password, String branch, String repository, String surroundSCMExecutable,
                      boolean includeOutput) {
@@ -248,7 +255,8 @@ public final class SurroundSCM extends SCM {
 
     listener.getLogger().println("Calculating changes since build #" + lastBuildNum + " which happened at " + scm_datetime_formatter.format(lastBuild) + " pluginVer: " + pluginVersion);
 
-    double countChanges = determineChangeCount(launcher,  listener, lastBuild, now, temporaryFile);
+
+    double countChanges = determineChangeCount(launcher,  listener, lastBuild, now, temporaryFile, workspace);
 
     if(!temporaryFile.delete())
     {
@@ -276,6 +284,7 @@ public final class SurroundSCM extends SCM {
     @Nonnull Run<?, ?> build, @Nonnull Launcher launcher, @Nonnull FilePath workspace, @Nonnull TaskListener listener,
     @CheckForNull File changelogFile, @CheckForNull SCMRevisionState baseline) throws IOException, InterruptedException
   {
+
     SimpleDateFormat scm_datetime_formatter = new SimpleDateFormat(SURROUND_DATETIME_FORMAT_STR_2);
 
     Date currentDate = new Date(); //defaults to current
@@ -286,7 +295,7 @@ public final class SurroundSCM extends SCM {
     }
 
     ArgumentListBuilder cmd = new ArgumentListBuilder();
-    cmd.add(getSurroundSCMExecutable());//will default to sscm user can put in path
+    cmd.add(getSscmExe(workspace, listener, environment));//will default to sscm user can put in path
     cmd.add("get");
     cmd.add("/" );
     cmd.add("-wreplace");
@@ -359,7 +368,7 @@ public final class SurroundSCM extends SCM {
     dateRange = dateRange.concat(scm_datetime_formatter.format(currentDate));
 
     ArgumentListBuilder cmd = new ArgumentListBuilder();
-    cmd.add(getSurroundSCMExecutable());//will default to sscm user can put in path
+    cmd.add(getSscmExe(workspace, listener, env));//will default to sscm user can put in path
     cmd.add("cc");
     cmd.add("/");
     cmd.add("-d".concat(dateRange));
@@ -405,7 +414,7 @@ public final class SurroundSCM extends SCM {
   }
 
   private double determineChangeCount(Launcher launcher, TaskListener listener, Date lastBuildDate,
-                                      Date currentDate, File changelogFile) throws IOException, InterruptedException
+                                      Date currentDate, File changelogFile, FilePath workspace) throws IOException, InterruptedException
   {
     SimpleDateFormat scm_datetime_formatter = new SimpleDateFormat(SURROUND_DATETIME_FORMAT_STR);
 
@@ -418,7 +427,7 @@ public final class SurroundSCM extends SCM {
     dateRange = dateRange.concat(scm_datetime_formatter.format(currentDate));
 
     ArgumentListBuilder cmd = new ArgumentListBuilder();
-    cmd.add(getSurroundSCMExecutable());
+    cmd.add(getSscmExe(workspace, listener, null));
     cmd.add("cc");
     cmd.add("/");
     cmd.add("-d".concat(dateRange));
@@ -483,4 +492,63 @@ public final class SurroundSCM extends SCM {
     return changesCount;
   }
 
+  /**
+   * Attempt to find a pre-configured 'SurroundTool' with a saved 'sscm_tool_name'
+   * Currently this will always fall back to the 'default' tool for the current node and requires some further
+   * testing of edge conditions
+   *
+   * @param listener
+   * @return
+   */
+  public SurroundTool resolveSscmTool(TaskListener listener)
+  {
+    // TODO_PTV: Review this function, should we allow users to override the sscm_tool_name in the project level?
+    // TODO_PTV: Review this function, does this work when a node is configured to use a 2nd Surround SCM tool?
+    SurroundTool sscm = null;
+    if(sscm_tool_name == null || sscm_tool_name.isEmpty()) {
+      sscm = SurroundTool.getDefaultInstallation();
+    } else {
+      sscm = Jenkins.getInstance().getDescriptorByType(SurroundTool.DescriptorImpl.class).getInstallation(sscm_tool_name);
+      if (sscm == null) {
+        listener.getLogger().println(String.format("Selected sscm installation [%s] does not exist. Using Default", sscm_tool_name));
+        sscm = SurroundTool.getDefaultInstallation();
+      }
+    }
+    // TODO_PTV: Is it safe to save off the tool name so we don't need to perform a lookup again?
+    //if(sscm != null)
+    //  sscm_tool_name = sscm.getName();
+
+    return sscm;
+  }
+
+  public String getSscmExe( FilePath workspace, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
+    if(workspace != null) {
+      workspace.mkdirs(); // ensure it exists.
+    }
+    return getSscmExe(SSCMUtils.workspaceToNode(workspace), env, listener);
+  }
+
+  /**
+   * See "public String getGitExe(Node builtOn, EnvVars env, TaskListener listener)" Line 848 @ GitSCM.java
+   * @param builtOn
+   * @param env
+   * @param listener
+   * @return
+   */
+  public String getSscmExe(Node builtOn, EnvVars env, TaskListener listener)
+  {
+    SurroundTool tool = resolveSscmTool(listener);
+    if(builtOn != null) {
+      try {
+        tool = tool.forNode(builtOn, listener);
+      } catch(IOException | InterruptedException e) {
+        listener.getLogger().println("Failed to get sscm executable");
+      }
+    }
+    if(env != null) {
+      tool = tool.forEnvironment(env);
+    }
+
+    return tool.getSscmExe();
+  }
 }
