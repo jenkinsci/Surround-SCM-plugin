@@ -22,13 +22,17 @@ public class SurroundStep extends SCMStep {
   @DataBoundConstructor
   public SurroundStep(String sscm_url, String username, String password)
   {
-    this.sscm_url = sscm_url;
-    this.username = username;
-    this.password = password;
+    this.sscm_url = Util.fixEmptyAndTrim(sscm_url);
+    this.username = Util.fixEmptyAndTrim(username);
+    this.password = Util.fixEmptyAndTrim(password);
     this.RSAKeyFile = null;
 
   }
 
+  @DataBoundSetter
+  public void setRSAKeyFile(String RSAKeyFile) { this.RSAKeyFile = Util.fixEmptyAndTrim(RSAKeyFile); }
+
+  @SuppressWarnings("unused")
   @Deprecated
   public SurroundStep(String sscm_url, String username, String password, String RSAKeyFile)
   {
@@ -42,15 +46,14 @@ public class SurroundStep extends SCMStep {
   @Nonnull
   @Override
   protected SCM createSCM() {
-    // Parse Server out of combined variable
-    // Parse Branch out of combined
-    // Parse Repository path
-
     String server = SSCMUtils.getServerFromURL(sscm_url);
     String port = SSCMUtils.getPortFromURL(sscm_url);
     String branch = SSCMUtils.getBranchFromURL(sscm_url);
     String repository = SSCMUtils.getRepositoryFromURL(sscm_url);
-    return new SurroundSCM(RSAKeyFile, server, port, username, password, branch, repository);
+
+    SurroundSCM sscm = new SurroundSCM(server, port, username, password, branch, repository);
+    sscm.setRsaKeyPath(RSAKeyFile);
+    return sscm;
   }
 
   public String getSscm_url() {
@@ -69,8 +72,6 @@ public class SurroundStep extends SCMStep {
     return RSAKeyFile;
   }
 
-  @DataBoundSetter
-  public void setRSAKeyFile(String RSAKeyFile) { this.RSAKeyFile = Util.fixEmptyAndTrim(RSAKeyFile); }
 
   @Extension
   public static final class DescriptorImpl extends SCMStepDescriptor {
