@@ -122,6 +122,8 @@ public class SSCMUtilsTest extends TestCase {
 
   public void testValidateURL() throws Exception {
     assertTrue(SSCMUtils.validateSSCMURL(URL));
+
+    assertFalse(SSCMUtils.validateSSCMURL(null));
   }
 
   public static Test suite() {

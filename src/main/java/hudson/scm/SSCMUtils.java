@@ -25,13 +25,16 @@ public class SSCMUtils {
    */
   public static String getServerFromURL(String URL)
   {
-    Matcher changeMatcher = URI_PATTERN.matcher(URL);
-
     String result = "";
 
-    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
+    if(URL != null)
     {
-      result = changeMatcher.group(1);
+      Matcher changeMatcher = URI_PATTERN.matcher(URL);
+
+      if(changeMatcher.find() && changeMatcher.groupCount() == 4)
+      {
+        result = changeMatcher.group(1);
+      }
     }
 
     return result;
@@ -47,13 +50,16 @@ public class SSCMUtils {
    */
   public static String getPortFromURL(String URL)
   {
-    Matcher changeMatcher = URI_PATTERN.matcher(URL);
-
     String result = "";
 
-    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
+    if(URL != null)
     {
-      result = changeMatcher.group(2);
+      Matcher changeMatcher = URI_PATTERN.matcher(URL);
+
+      if(changeMatcher.find() && changeMatcher.groupCount() == 4)
+      {
+        result = changeMatcher.group(2);
+      }
     }
 
     return result;
@@ -69,13 +75,16 @@ public class SSCMUtils {
    */
   public static String getBranchFromURL(String URL)
   {
-    Matcher changeMatcher = URI_PATTERN.matcher(URL);
-
     String result = "";
 
-    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
+    if(URL != null)
     {
-      result = changeMatcher.group(3);
+      Matcher changeMatcher = URI_PATTERN.matcher(URL);
+
+      if(changeMatcher.find() && changeMatcher.groupCount() == 4)
+      {
+        result = changeMatcher.group(3);
+      }
     }
 
     return result;
@@ -91,13 +100,16 @@ public class SSCMUtils {
    */
   public static String getRepositoryFromURL(String URL)
   {
-    Matcher changeMatcher = URI_PATTERN.matcher(URL);
-
     String result = "";
 
-    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
+    if(URL != null)
     {
-      result = changeMatcher.group(4);
+      Matcher changeMatcher = URI_PATTERN.matcher(URL);
+
+      if(changeMatcher.find() && changeMatcher.groupCount() == 4)
+      {
+        result = changeMatcher.group(4);
+      }
     }
 
     return result;
@@ -105,6 +117,8 @@ public class SSCMUtils {
 
   public static boolean validateSSCMURL(String URL)
   {
+    if(URL == null)
+      return false;
 
     Matcher changeMatcher = URI_PATTERN.matcher(URL);
 
