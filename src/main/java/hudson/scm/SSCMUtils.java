@@ -5,11 +5,15 @@ import hudson.model.Computer;
 import hudson.model.Node;
 import jenkins.model.Jenkins;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Class of basic utils for working with 'sscm://' urls.
  */
 public class SSCMUtils {
-  private final static String URI = "sscm://";
+  private final static String URI_FORMAT = "sscm://(.*):(.*)//(.*)//(.*)";
+  private final static Pattern URI_PATTERN = Pattern.compile(URI_FORMAT);
 
   /**
    * Parses the Surround SCM Server host name from the passed in sscm:// url.
@@ -21,14 +25,13 @@ public class SSCMUtils {
    */
   public static String getServerFromURL(String URL)
   {
+    Matcher changeMatcher = URI_PATTERN.matcher(URL);
+
     String result = "";
 
-    if(validateSSCMURL(URL))
+    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
     {
-      int startOfServer = URI.length();
-      int endOfServer = URL.indexOf(":", startOfServer);
-      if(startOfServer > 0 && endOfServer > 0)  // Everything should be greater than 0 because 0 = the URI
-        result = URL.substring(startOfServer, endOfServer);
+      result = changeMatcher.group(1);
     }
 
     return result;
@@ -44,21 +47,16 @@ public class SSCMUtils {
    */
   public static String getPortFromURL(String  URL)
   {
-    String port = "";
-    if(validateSSCMURL(URL))
+    Matcher changeMatcher = URI_PATTERN.matcher(URL);
+
+    String result = "";
+
+    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
     {
-      int startOfPort = URL.indexOf(":",URI.length()) ; // start search after the URI's ':'
-      int endOfPort = URL.indexOf("//", startOfPort);
-      if(startOfPort > 0 && endOfPort > 0)   // Everything should be greater than 0 because 0 = the URI
-        port  = URL.substring(startOfPort + 1, endOfPort); // Need to account for the ':'
-        try {
-          Integer.parseInt(port);
-        } catch( NumberFormatException ex)
-        {
-          port = "";
-        }
+      result = changeMatcher.group(2);
     }
-    return port;
+
+    return result;
   }
 
   /**
@@ -71,16 +69,16 @@ public class SSCMUtils {
    */
   public static String getBranchFromURL(String  URL)
   {
-    String branch = "";
-    if(validateSSCMURL(URL))
+    Matcher changeMatcher = URI_PATTERN.matcher(URL);
+
+    String result = "";
+
+    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
     {
-      int startOfBranch = URL.indexOf("//", URI.length()); // start search after the URI's '//'
-      int endOfBranch = URL.indexOf("//", startOfBranch + 2);
-      if(startOfBranch > 0 && endOfBranch > 0) {   // Everything should be greater than 0 because 0 = the URI
-        branch  = URL.substring(startOfBranch + 2, endOfBranch);
-      }
+      result = changeMatcher.group(3);
     }
-    return branch;
+
+    return result;
   }
 
   /**
@@ -93,49 +91,31 @@ public class SSCMUtils {
    */
   public static String getRepositoryFromURL(String  URL)
   {
-    String repository = "";
-    if(validateSSCMURL(URL))
+    Matcher changeMatcher = URI_PATTERN.matcher(URL);
+
+    String result = "";
+
+    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
     {
-      int startOfRepository = URL.lastIndexOf("//");
-      if(startOfRepository > 0)   // Everything should be greater than 0 because 0 = the URI
-        repository  = URL.substring(startOfRepository + 2); // Need to account for the fact that start found "//"
+      result = changeMatcher.group(4);
     }
-    return repository;
+
+    return result;
   }
 
-  @SuppressWarnings("ResultOfMethodCallIgnored")
   public static boolean validateSSCMURL(String URL)
   {
-    if(!URL.startsWith(URI))
-      return false;
 
-    String[] splitURL = URL.split("//");
+    Matcher changeMatcher = URI_PATTERN.matcher(URL);
 
-    if(splitURL.length != 4)
-      return false;
+    boolean result = false;
 
-    // Check section 1
-    if(!splitURL[0].equals("sscm:"))
-      return false;
-
-    // Check section 2
-    String[] splitServerPort = splitURL[1].split(":");
-    if(splitServerPort.length != 2)
-      return false;
-
-    if(splitServerPort[0].isEmpty() || splitServerPort[1].isEmpty())
-      return false;
-
-    try
+    if(changeMatcher.find() && changeMatcher.groupCount() == 4)
     {
-      Integer.parseInt(splitServerPort[1]);
-    } catch (NumberFormatException ex)
-    {
-      return false;
+      result = true;
     }
 
-    // Check section 3 & 4
-    return !(splitURL[2].isEmpty() || splitURL[3].isEmpty());
+    return result;
   }
 
   public static Node workspaceToNode(FilePath workspace)

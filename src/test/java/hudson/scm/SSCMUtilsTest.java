@@ -65,7 +65,7 @@ public class SSCMUtilsTest extends TestCase {
     assertEquals("", port);
 
     port = SSCMUtils.getPortFromURL("sscm://:4900//branch//Mainline/Path/To/Repository");
-    assertEquals("", port);
+    assertEquals("4900", port);
 
     port = SSCMUtils.getPortFromURL("sscm://server://branch//Mainline/Path/To/Repository");
     assertEquals("", port);
