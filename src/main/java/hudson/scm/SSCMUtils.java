@@ -45,7 +45,7 @@ public class SSCMUtils {
    * @param URL ex. sscm://server:4900//branch//Mainline/Path/To/Repository
    * @return returns the port (ex. 4900)
    */
-  public static String getPortFromURL(String  URL)
+  public static String getPortFromURL(String URL)
   {
     Matcher changeMatcher = URI_PATTERN.matcher(URL);
 
@@ -67,7 +67,7 @@ public class SSCMUtils {
    * @param URL ex. sscm://server:4900//branch//Mainline/Path/To/Repository
    * @return returns the port (ex. 4900)
    */
-  public static String getBranchFromURL(String  URL)
+  public static String getBranchFromURL(String URL)
   {
     Matcher changeMatcher = URI_PATTERN.matcher(URL);
 
@@ -89,7 +89,7 @@ public class SSCMUtils {
    * @param URL ex. sscm://server:4900//branch//Mainline/Path/To/Repository
    * @return returns the port (ex. 4900)
    */
-  public static String getRepositoryFromURL(String  URL)
+  public static String getRepositoryFromURL(String URL)
   {
     Matcher changeMatcher = URI_PATTERN.matcher(URL);
 
