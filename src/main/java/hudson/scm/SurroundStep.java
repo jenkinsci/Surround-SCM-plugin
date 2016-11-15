@@ -1,8 +1,10 @@
 package hudson.scm;
 
 import hudson.Extension;
+import hudson.Util;
 import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
@@ -13,17 +15,26 @@ public class SurroundStep extends SCMStep {
   private final String sscm_url;
   private final String username;
   private final String password;
-  private final String RSAKeyFile;
-  private final String sscmPath;
+  private String RSAKeyFile;
+
 
 
   @DataBoundConstructor
-  public SurroundStep(String sscm_url, String username, String password, String sscmPath, String RSAKeyFile)
+  public SurroundStep(String sscm_url, String username, String password)
   {
     this.sscm_url = sscm_url;
     this.username = username;
     this.password = password;
-    this.sscmPath = sscmPath;
+    this.RSAKeyFile = null;
+
+  }
+
+  @Deprecated
+  public SurroundStep(String sscm_url, String username, String password, String RSAKeyFile)
+  {
+    this.sscm_url = sscm_url;
+    this.username = username;
+    this.password = password;
     this.RSAKeyFile = RSAKeyFile;
 
   }
@@ -39,7 +50,7 @@ public class SurroundStep extends SCMStep {
     String port = SSCMUtils.getPortFromURL(sscm_url);
     String branch = SSCMUtils.getBranchFromURL(sscm_url);
     String repository = SSCMUtils.getRepositoryFromURL(sscm_url);
-    return new SurroundSCM(RSAKeyFile, server, port, username, password, branch, repository, sscmPath, true);
+    return new SurroundSCM(RSAKeyFile, server, port, username, password, branch, repository);
   }
 
   public String getSscm_url() {
@@ -58,9 +69,8 @@ public class SurroundStep extends SCMStep {
     return RSAKeyFile;
   }
 
-  public String getSscmPath() {
-    return sscmPath;
-  }
+  @DataBoundSetter
+  public void setRSAKeyFile(String RSAKeyFile) { this.RSAKeyFile = Util.fixEmptyAndTrim(RSAKeyFile); }
 
   @Extension
   public static final class DescriptorImpl extends SCMStepDescriptor {

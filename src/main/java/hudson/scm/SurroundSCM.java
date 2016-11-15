@@ -6,6 +6,7 @@ import hudson.util.ArgumentListBuilder;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.CheckForNull;
@@ -69,7 +70,7 @@ public final class SurroundSCM extends SCM {
   private String repository;
 
   @Deprecated
-  private String surroundSCMExecutable;
+  private transient String surroundSCMExecutable;
 
   private String sscm_tool_name;
 
@@ -81,8 +82,9 @@ public final class SurroundSCM extends SCM {
     return rsaKeyPath;
   }
 
+  @DataBoundSetter
   public void setRsaKeyPath(String rsaKeyPath) {
-    this.rsaKeyPath = rsaKeyPath;
+    this.rsaKeyPath = Util.fixEmptyAndTrim(rsaKeyPath);
   }
 
   public String getServer() {
@@ -151,6 +153,22 @@ public final class SurroundSCM extends SCM {
   private static final String SURROUND_DATETIME_FORMAT_STR_2 = "yyyyMMddHH:mm:ss";
 
   @DataBoundConstructor
+  public SurroundSCM(String server, String serverPort, String userName,
+                     String password, String branch,  String repository)
+  {
+    this.rsaKeyPath = null;
+    this.server = server;
+    this.serverPort = serverPort;
+    this.userName = userName;
+    this.password = password;
+    this.branch = branch;
+    this.repository = repository;
+    this.bIncludeOutput = true; // Leaving this here for future functionality.
+
+    this.surroundSCMExecutable = null;
+  }
+
+  @Deprecated
   public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
                      String password, String branch,  String repository)
   {
