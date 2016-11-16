@@ -134,7 +134,7 @@ public class SSCMUtils {
 
   public static Node workspaceToNode(FilePath workspace)
   {
-    Jenkins j = Jenkins.getActiveInstance();
+    Jenkins j = Jenkins.getInstance();
     if(workspace != null && workspace.isRemote())
     {
       for(Computer c : j.getComputers())

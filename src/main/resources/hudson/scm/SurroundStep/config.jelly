@@ -11,7 +11,7 @@
    <f:entry field="password" title="Password">
       <f:password  />
    </f:entry>
-   <f:entry field="RSAKeyFile" title="RSA key path">
+   <f:entry field="rsaKeyPath" title="RSA key path">
       <f:textbox  />
    </f:entry>
    <st:include page="config-generic.jelly" class="org.jenkinsci.plugins.workflow.steps.scm.SCMStep"/>

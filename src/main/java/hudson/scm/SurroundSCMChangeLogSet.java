@@ -18,13 +18,13 @@ public final class SurroundSCMChangeLogSet extends ChangeLogSet<SurroundSCMChang
 
   protected SurroundSCMChangeLogSet(Run<?, ?> run, RepositoryBrowser<?> browser) {
     super(run, browser);
-    changes = new ArrayList<>();
+    changes = new ArrayList<SurroundSCMChangeLogSetEntry>();
   }
 
   @Deprecated
   protected  SurroundSCMChangeLogSet(AbstractBuild<?, ?> build) {
     super(build);
-    changes = new ArrayList<>();
+    changes = new ArrayList<SurroundSCMChangeLogSetEntry>();
   }
 
   @Override
@@ -129,7 +129,7 @@ public final class SurroundSCMChangeLogSet extends ChangeLogSet<SurroundSCMChang
 
     @Override
     public Collection<String> getAffectedPaths() {
-      Collection<String> col = new ArrayList<>();
+      Collection<String> col = new ArrayList<String>();
       col.add(affectedFile);
       return col;
     }
