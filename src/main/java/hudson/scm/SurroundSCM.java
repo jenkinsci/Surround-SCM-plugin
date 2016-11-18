@@ -9,12 +9,14 @@ import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.*;
 import hudson.model.*;
+import hudson.scm.config.RSAKey;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.*;
+import org.kohsuke.stapler.export.Exported;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -84,8 +86,17 @@ public final class SurroundSCM extends SCM {
       }
       return new StandardListBoxModel().withEmptySelection().withAll(availableFileCredentials(owner, new EnvVars().expand(source)));
     }
+
+    private RSAKey getRSAKeyFromRequest(final StaplerRequest req, final JSONObject scmData) {
+      if(scmData.containsKey("RSAKey")) {
+        return req.bindJSON(RSAKey.class, scmData.getJSONObject("RSAKey"));
+      } else {
+        return null;
+      }
+    }
   }
   /*--------------------- END INNER CLASS ------------------------------------------------------------*/
+
 
   // if there are > changesThreshold changes, that it's build now incomparable
   // if there are < changesThreshold changes, but > 0 changes, then it's significant
@@ -93,14 +104,16 @@ public final class SurroundSCM extends SCM {
   private static transient final int pluginVersion = 9;
 
   // config options
-  private String rsaKeyPath;
   private String server;
   private String serverPort;
   private String branch ;
   private String repository;
 
   private String credentialsId;
-  private String rsaKeyFileId;
+
+  private RSAKey rsaKey;
+  @Deprecated
+  private transient String rsaKeyPath;
 
   // TODO: Review if this is needed.
   private String sscm_tool_name;
@@ -128,8 +141,23 @@ public final class SurroundSCM extends SCM {
   private String password ;
 
   //getters
-  public String getRsaKeyPath() {
-    return rsaKeyPath;
+  public String getRsaKeyFilePath()
+  {
+    String result = null;
+    if(rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.Path) {
+      result = rsaKey.getRsaKeyValue();
+    }
+    Logger.getLogger(SurroundSCM.class.toString()).log(Level.SEVERE, String.format("getRsaKeyPath - Value: [%s]", result));
+    return result;
+  }
+
+  public String getRsaKeyFileId() {
+    String result = null;
+    if(rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.ID) {
+      result = rsaKey.getRsaKeyValue();
+    }
+    Logger.getLogger(SurroundSCM.class.toString()).log(Level.SEVERE, String.format("getRsaKeyFileId - Value: [%s]", result));
+    return result;
   }
 
   public String getServer() {
@@ -140,10 +168,12 @@ public final class SurroundSCM extends SCM {
     return serverPort;
   }
 
+  @Deprecated
   public String getUserName() {
     return userName;
   }
 
+  @Deprecated
   public String getPassword() {
     return password;
   }
@@ -162,7 +192,17 @@ public final class SurroundSCM extends SCM {
 
   public String getCredentialsId() { return credentialsId; }
 
-  public String getRsaKeyFileId() { return rsaKeyFileId; }
+  public boolean hasRsaKeyConfigured() {
+    return rsaKey == null || rsaKey.getRsaKeyType() != RSAKey.Type.NoKey;
+  }
+
+  public boolean isUsingRsaKeyPath() {
+    return rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.Path;
+  }
+
+  public boolean isUsingRsaKeyFileId() {
+    return rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.ID;
+  }
 
   //DataBoundSetters
 
@@ -172,12 +212,35 @@ public final class SurroundSCM extends SCM {
   }
 
   @DataBoundSetter
-  public void setRsaKeyPath(String rsaKeyPath) {
-    this.rsaKeyPath = Util.fixEmptyAndTrim(rsaKeyPath);
+  public void setRsaKey(RSAKey rsaKey) {
+    this.rsaKey = rsaKey;
+  }
+
+  @Exported
+  public RSAKey getRsaKey() { return null; }
+
+  @Deprecated
+  @DataBoundSetter
+  public void setRsaKeyPath(String rsaKeyPath)
+  {
+    this.rsaKey = new RSAKey(RSAKey.Type.Path, rsaKeyPath);
+  }
+
+  @Deprecated
+  @Exported
+  public String getRsaKeyPath() { return null; }
+
+  @DataBoundSetter
+  public void setRsaKeyFilePath(String rsaKeyFilePath)
+  {
+    setRsaKeyPath(rsaKeyFilePath);
   }
 
   @DataBoundSetter
-  public void setRsaKeyFileId(String rsaKeyFileId) { this.rsaKeyFileId = Util.fixEmptyAndTrim(rsaKeyFileId); }
+  public void setRsaKeyFileId(String rsaKeyFileId)
+  {
+    this.rsaKey = new RSAKey(RSAKey.Type.ID, rsaKeyFileId);
+  }
 
   /**
    * Singleton descriptor.
@@ -189,16 +252,16 @@ public final class SurroundSCM extends SCM {
   private static final String SURROUND_DATETIME_FORMAT_STR_2 = "yyyyMMddHH:mm:ss";
 
   @DataBoundConstructor
-  public SurroundSCM(String server, String serverPort, String branch, String repository, String credentialsId)
-  {
+  public SurroundSCM(String server, String serverPort, String branch, String repository, String credentialsId) {
     this.rsaKeyPath = null;
-    this.rsaKeyFileId = null;
+    this.rsaKey = null;
 
     this.server = Util.fixEmptyAndTrim(server);
     this.serverPort = Util.fixEmptyAndTrim(serverPort);
     this.branch = Util.fixEmptyAndTrim(branch);
     this.repository = Util.fixEmptyAndTrim(repository);
     this.credentialsId = Util.fixEmptyAndTrim(credentialsId);
+
     this.bIncludeOutput = true; // Leaving this here for future functionality.
 
     this.userName = null;
@@ -206,33 +269,18 @@ public final class SurroundSCM extends SCM {
     this.surroundSCMExecutable = null;
   }
 
-  @Deprecated
-  public SurroundSCM(String server, String serverPort, String userName,
-                     String password, String branch,  String repository)
-  {
-    this(server, serverPort, branch, repository, null);
-
-    this.userName = Util.fixEmptyAndTrim(userName);
-    this.password = Util.fixEmptyAndTrim(password);
-  }
-
-  @Deprecated
-  public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
-                     String password, String branch,  String repository)
-  {
-    this(server, serverPort, branch, repository, null);
-    this.rsaKeyPath = Util.fixEmptyAndTrim(rsaKeyPath);
-    this.userName = Util.fixEmptyAndTrim(userName);
-    this.password = Util.fixEmptyAndTrim(password);
-  }
-
-  @Deprecated
+  /**
+   * @deprecated as of release v10, Significant updates to the Jenkins integration, including:
+   * - Switched to @DataBoundSetter's for optional parameters
+   * - Switched to Credential storage for usernames & rsakeys
+   * - Updated the config page, which necessitated data structure changes.
+   */
   public SurroundSCM(String rsaKeyPath, String server, String serverPort, String userName,
                      String password, String branch, String repository, String surroundSCMExecutable,
                      boolean includeOutput)
   {
     this(server, serverPort, branch, repository, null);
-    this.rsaKeyPath = Util.fixEmptyAndTrim(rsaKeyPath);
+    this.rsaKey = new RSAKey(RSAKey.Type.Path, rsaKeyPath);
     this.userName = Util.fixEmptyAndTrim(userName);
     this.password = Util.fixEmptyAndTrim(password);
     this.surroundSCMExecutable = Util.fixEmptyAndTrim(surroundSCMExecutable);
@@ -648,7 +696,7 @@ public final class SurroundSCM extends SCM {
    */
   private String getServerConnectionArgument(Job<?, ?> owner, EnvVars env, FilePath workspace) {
     String result = null;
-    String rsaKeyPath = getRSAKeyFilePath(owner, env, workspace);
+    String rsaKeyPath = getRemotePathForRSAKeyFile(owner, env, workspace);
     if(rsaKeyPath != null && !rsaKeyPath.isEmpty())
     {
       result = String.format("-z%s", rsaKeyPath);
@@ -661,11 +709,11 @@ public final class SurroundSCM extends SCM {
     return result;
   }
 
-  private static List<? extends StandardUsernameCredentials> availableCredentials(Job<?,?> owner, String source) {
+  /*package*/ static List<? extends StandardUsernameCredentials> availableCredentials(Job<?,?> owner, String source) {
     return CredentialsProvider.lookupCredentials(StandardUsernameCredentials.class, owner, null, URIRequirementBuilder.fromUri(source).build());
   }
 
-  private static List<? extends FileCredentials> availableFileCredentials(Job<?,?> owner, String source) {
+  /*package*/ static List<? extends FileCredentials> availableFileCredentials(Job<?,?> owner, String source) {
     return CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, URIRequirementBuilder.fromUri(source).build());
   }
 
@@ -683,9 +731,9 @@ public final class SurroundSCM extends SCM {
 
   @CheckForNull
   public FileCredentials getFileCredentials(Job<?,?> owner, EnvVars env) {
-    if(rsaKeyFileId != null) {
+    if(rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.ID) {
       for(FileCredentials fc : availableFileCredentials(owner, env.expand(String.format("sscm://%s:%s", server, serverPort)))) { // TODO: This seems like a royal hack
-        if(fc.getId().equals(rsaKeyFileId)) {
+        if(fc.getId().equals(rsaKey.getRsaKeyValue())) {
           return fc;
         }
       }
@@ -714,7 +762,7 @@ public final class SurroundSCM extends SCM {
       } catch (IOException e) {
         Logger.getLogger(SurroundSCM.class.toString()).log(Level.SEVERE,
           String.format("Found RSA Key File by ID [%s], however failed to retrieve file to destination machine.\n" +
-            "Error Message: %s", rsaKeyFileId, e.toString()));
+            "Error Message: %s", rsaKey != null ? rsaKey.getRsaKeyValue() : "rsaKey object was null?", e.toString()));
       } catch (InterruptedException e) {
         Logger.getLogger(SurroundSCM.class.toString()).log(Level.SEVERE,
           String.format("Exception while attempting to retrieve RSA Key File to destination machine. Error message: %s", e.toString()));
@@ -734,17 +782,23 @@ public final class SurroundSCM extends SCM {
    * @param workspace Used as a destination for any RSA Key File retrieved from fileCredentials
    * @return  Returns either the path to an RSA Key File, or null indicating no RSA Key File.
    */
-  private String getRSAKeyFilePath(Job<?, ?> owner, EnvVars env, FilePath workspace)
+  private String getRemotePathForRSAKeyFile(Job<?, ?> owner, EnvVars env, FilePath workspace)
   {
     String result = null;
-    if(rsaKeyFileId != null && !rsaKeyFileId.isEmpty())
+    if(rsaKey != null)
     {
-      result = populateRSAKeyFile(owner, env, workspace);
-    }
-
-    if(result == null && rsaKeyPath != null && !rsaKeyPath.isEmpty())
-    {
-      result = rsaKeyPath;
+      switch (rsaKey.getRsaKeyType())
+      {
+        case ID:
+          result = populateRSAKeyFile(owner, env, workspace);
+          break;
+        case Path:
+          result = rsaKey.getRsaKeyValue();
+          break;
+        case NoKey:
+        default:
+            result = null;
+      }
     }
 
     return result;

@@ -14,10 +14,7 @@
       <f:textbox />
    </f:entry>
    <f:entry title="Server port" field="serverPort">
-      <f:textbox />
-   </f:entry>
-   <f:entry title="${%Credentials}" field="credentialsId">
-      <c:select />
+      <f:textbox default="4900"/>
    </f:entry>
    <f:entry title="Branch" field="branch">
       <f:textbox />
@@ -25,10 +22,22 @@
    <f:entry title="Repository" field="repository">
       <f:textbox />
    </f:entry>
-   <f:entry title="RSA key path" field="rsaKeyPath">
-      <f:textbox />
-   </f:entry>
-   <f:entry title="${%RSA Key File}" field="rsaKeyFileId">
+   <f:entry title="${%Credentials}" field="credentialsId">
       <c:select />
    </f:entry>
+
+   <f:dropdownList name="rsaKey" title="${%Use RSA key file}">
+      <f:dropdownListBlock title="${%- None -}" value="0" selected="${!instance.hasRsaKeyConfigured()}" />
+      <f:dropdownListBlock  title="${%Path to RSA key file}" value="2" selected="${instance.isUsingRsaKeyPath()}">
+         <f:entry field="rsaKeyFilePath">
+            <f:textbox />
+         </f:entry>
+      </f:dropdownListBlock>
+      <f:dropdownListBlock title="${%RSA key file}" value="1" selected="${instance.isUsingRsaKeyFileId()}">
+         <f:entry field="rsaKeyFileId">
+            <c:select />
+         </f:entry>
+      </f:dropdownListBlock>
+   </f:dropdownList>
+
 </j:jelly>

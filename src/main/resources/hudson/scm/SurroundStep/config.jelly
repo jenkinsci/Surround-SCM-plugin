@@ -1,18 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
    <f:entry field="sscm_url" title="Repository URL">
       <f:textbox/>
    </f:entry>
-   <f:entry field="username" title="Username">
-      <f:textbox />
+   <f:entry title="${%Credentials}" field="credentialsId">
+      <c:select />
    </f:entry>
-   <f:entry field="password" title="Password">
-      <f:password  />
-   </f:entry>
-   <f:entry field="rsaKeyPath" title="RSA key path">
-      <f:textbox  />
-   </f:entry>
+
+   <f:dropdownList name="rsaKey" title="${%Use RSA key file}">
+      <f:dropdownListBlock title="${%- None -}" value="0" selected="${!instance.hasRsaKeyConfigured()}" />
+      <f:dropdownListBlock  title="${%Path to RSA key file}" value="2" selected="${instance.isUsingRsaKeyPath()}">
+         <f:entry field="rsaKeyFilePath">
+            <f:textbox />
+         </f:entry>
+      </f:dropdownListBlock>
+      <f:dropdownListBlock title="${%RSA key file}" value="1" selected="${instance.isUsingRsaKeyFileId()}">
+         <f:entry field="rsaKeyFileId">
+            <c:select />
+         </f:entry>
+      </f:dropdownListBlock>
+   </f:dropdownList>
    <st:include page="config-generic.jelly" class="org.jenkinsci.plugins.workflow.steps.scm.SCMStep"/>
 </j:jelly>
