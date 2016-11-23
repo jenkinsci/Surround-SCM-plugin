@@ -50,9 +50,7 @@ public class RSAKey extends AbstractDescribableImpl<RSAKey> implements Serializa
    * This solely exists to fix the stupid Snippet Generator from crashing when asking about this function.
    */
   @Exported
-  public String getRsaKeyFileId() {
-    return null;
-  }
+  public String getRsaKeyFileId() { return null; }
 
   @DataBoundSetter
   public void setRsaKeyFilePath(String rsaKeyFilePath) {
@@ -64,9 +62,7 @@ public class RSAKey extends AbstractDescribableImpl<RSAKey> implements Serializa
    * This solely exists to fix the stupid Snippet Generator from crashing when asking about this function.
    */
   @Exported
-  public String getRsaKeyFilePath() {
-    return null;
-  }
+  public String getRsaKeyFilePath() { return null; }
 
   @DataBoundSetter
   public void setRsaKeyValue(String rsaKeyValue) { this.rsaKeyValue = rsaKeyValue; }
@@ -80,8 +76,6 @@ public class RSAKey extends AbstractDescribableImpl<RSAKey> implements Serializa
   @Extension
   public static class DescriptorImpl extends Descriptor<RSAKey> {
     @Override
-    public String getDisplayName() {
-      return "RSA Key";
-    }
+    public String getDisplayName() { return "RSA Key"; }
   }
 }

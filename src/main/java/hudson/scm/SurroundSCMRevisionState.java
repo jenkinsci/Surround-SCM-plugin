@@ -1,11 +1,6 @@
 package hudson.scm;
 
-import hudson.scm.SCMRevisionState;
-
-
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 public final class SurroundSCMRevisionState extends SCMRevisionState {
 
