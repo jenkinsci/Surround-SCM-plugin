@@ -361,8 +361,11 @@ public final class SurroundSCM extends SCM {
 
     listener.getLogger().println("Calculating changes since build #" + lastBuildNum + " which happened at " + scm_datetime_formatter.format(lastBuild) + " pluginVer: " + pluginVersion);
 
-
-    double countChanges = determineChangeCount(project, launcher, listener, lastBuild, now, temporaryFile, workspace);
+    double countChanges = 0;
+    if(launcher != null)
+      countChanges = determineChangeCount(project, launcher, listener, lastBuild, now, temporaryFile, workspace);
+    else
+      listener.getLogger().println("Launcher was null... skipping determining change count.");
 
     if (!temporaryFile.delete()) {
       listener.getLogger().println("Failed to delete temporary file [" + temporaryFile.getAbsolutePath() + "] marking the file to be deleted when Jenkins restarts.");
@@ -622,9 +625,13 @@ public final class SurroundSCM extends SCM {
     if (sscm_tool_name == null || sscm_tool_name.isEmpty()) {
       sscm = SurroundTool.getDefaultInstallation();
     } else {
-      SurroundTool.DescriptorImpl sscmToolDesc = Jenkins.getInstance().getDescriptorByType(SurroundTool.DescriptorImpl.class);
-      if(sscmToolDesc != null)
-        sscm = sscmToolDesc.getInstallation(sscm_tool_name);
+      Jenkins jenkinsInstance = Jenkins.getInstance();
+      if(jenkinsInstance != null)
+      {
+        SurroundTool.DescriptorImpl sscmToolDesc = Jenkins.getInstance().getDescriptorByType(SurroundTool.DescriptorImpl.class);
+        if(sscmToolDesc != null)
+          sscm = sscmToolDesc.getInstallation(sscm_tool_name);
+      }
       if (sscm == null) {
         listener.getLogger().println(String.format("Selected sscm installation [%s] does not exist. Using Default", sscm_tool_name));
         sscm = SurroundTool.getDefaultInstallation();
@@ -745,7 +752,7 @@ public final class SurroundSCM extends SCM {
         result = rsaFilePath.getRemote();
       } catch (IOException e) {
         Logger.getLogger(SurroundSCM.class.toString()).log(Level.SEVERE,
-          String.format("Found RSA Key File by ID [%s], however failed to retrieve file to destination machine.\n" +
+          String.format("Found RSA Key File by ID [%s], however failed to retrieve file to destination machine.%n" +
             "Error Message: %s", rsaKey != null ? rsaKey.getRsaKeyValue() : "rsaKey object was null?", e.toString()));
       } catch (InterruptedException e) {
         Logger.getLogger(SurroundSCM.class.toString()).log(Level.SEVERE,

@@ -27,6 +27,8 @@ public final class SurroundTool extends ToolInstallation implements NodeSpecific
 {
   public static transient final String DEFAULT_NAME = "Default";
 
+  private static final long serialVersionUID = 1;
+
   @DataBoundConstructor
   public SurroundTool(String name, String home, List<? extends ToolProperty<?>> properties) {
     super(name, home, properties);
