@@ -1,15 +1,30 @@
 package hudson.scm;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
+import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.model.Computer;
+import hudson.model.Item;
+import hudson.model.Job;
 import hudson.model.Node;
+import hudson.scm.config.RSAKey;
+import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.plaincredentials.FileCredentials;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.QueryParameter;
 
+import javax.annotation.CheckForNull;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Class of basic utils for working with 'sscm://' urls.
+ * Class for common, shared methods used to make the Surround SCM integration function.
  */
 public class SSCMUtils {
   private final static String URI_FORMAT = "sscm://(.*):(.*)//(.*)//(.*)";
@@ -115,6 +130,12 @@ public class SSCMUtils {
     return result;
   }
 
+  /**
+   * Performs basic sscm:// url validation by attempting to match it to the URI_PATTERN variable.
+   *
+   * @param URL URL to test to see if it is valid.
+   * @return  Returns true if the URL is valid, false if not.
+   */
   public static boolean validateSSCMURL(String URL)
   {
     if(URL == null)
@@ -132,6 +153,12 @@ public class SSCMUtils {
     return result;
   }
 
+  /**
+   * Helper function which finds the 'Node' for a provided 'workspace'
+   *
+   * @param workspace A 'workspace' that was provided by Jenkins
+   * @return  The 'Node' that the workspace exists on. Defaults to the primary Jenkins instance.
+   */
   public static Node workspaceToNode(FilePath workspace)
   {
     Jenkins j = Jenkins.getInstance();
@@ -150,4 +177,102 @@ public class SSCMUtils {
     return j;
   }
 
+  /**
+   * This populates the Username//Password credential dropdown on the config page.
+   *
+   * @return  Returns a list of credentials to populate the combobox with.
+   */
+  public static ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job<?,?> owner, @QueryParameter String source)
+  {
+    if(owner == null || !owner.hasPermission(Item.EXTENDED_READ)) {
+      return new ListBoxModel();
+    }
+    return new StandardUsernameListBoxModel().withEmptySelection().withAll(availableCredentials(owner, new EnvVars().expand(source)));
+  }
+  /**
+   * This populates the rsaKeyFileId dropdown with a list of 'FileCredentials' that could be used.
+   *
+   * @return  Returns a list of FileCredential objects that have been configured.
+   */
+  public static ListBoxModel doFillRsaKeyFileIdItems(@AncestorInPath Job<?, ?> owner, @QueryParameter String source) {
+    if(owner == null || !owner.hasPermission(Item.EXTENDED_READ)) {
+      return new ListBoxModel();
+    }
+    return new StandardListBoxModel().withEmptySelection().withAll(availableFileCredentials(owner, new EnvVars().expand(source)));
+  }
+
+  /**
+   * Uses the {@link CredentialsProvider} to lookup {@link StandardUsernameCredentials} which will be used to populate
+   * the username // password  dropdown box.
+   *
+   * @param owner   Job that this is being performed for
+   * @param source  A.... source?
+   * @return  Returns a list of {@link StandardUsernameCredentials} which can be thrown into a
+   *          {@link StandardUsernameListBoxModel}
+   */
+  public static List<? extends StandardUsernameCredentials> availableCredentials(Job<?, ?> owner, String source) {
+    return CredentialsProvider.lookupCredentials(StandardUsernameCredentials.class, owner, null, URIRequirementBuilder.fromUri(source).build());
+  }
+
+  /**
+   * Uses the {@link CredentialsProvider} to lookup {@link FileCredentials} which will be used to populate
+   * the username // password  dropdown box.
+   *
+   * @param owner   A.... Jobish object?
+   * @param source  A.... source?
+   * @return  Returns a list of {@link FileCredentials} which can be thrown into a {@link StandardListBoxModel}
+   */
+  public static List<? extends FileCredentials> availableFileCredentials(Job<?, ?> owner, String source) {
+    return CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, URIRequirementBuilder.fromUri(source).build());
+  }
+
+
+  /**
+   * Looks up a specific credential based on the credential ID.
+   * @param owner   Used during credential lookup from the CredentialProvider
+   * @param env     Used to generate a 'Source' string
+   * @param server  Used to generate the source string
+   * @param port    Used to generate the source string
+   * @param credentialsId ID string of the credential to lookup.
+   * @return  Returns the {@link StandardUsernameCredentials} matching the specified credentialsID, or null
+   */
+  @CheckForNull
+  public static StandardUsernameCredentials getCredentials(Job<?,?> owner, EnvVars env,
+                                                           String server, String port, String credentialsId) {
+    if(credentialsId != null) {
+      List<? extends StandardUsernameCredentials> credentials = availableCredentials(owner, env.expand(String.format("sscm://%s:%s", server, port)));
+
+      for (StandardUsernameCredentials c : credentials) {
+        if(c.getId().equals(credentialsId)) {
+          return c;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Looks up a specific file credential based on its ID.
+   * @param owner   Used during credential lookup from the CredentialProvider
+   * @param env     Used to generate a 'Source' string
+   * @param server  Used to generate the source string
+   * @param port    Used to generate the source string
+   * @param rsaKey  This will only work if this is an rsaKey with a {@link RSAKey.Type} of "ID"
+   * @return  Returns the fileCredential specified in the {@link RSAKey} 'value', or null
+   */
+  @CheckForNull
+  public static FileCredentials getFileCredentials(Job<?,?> owner, EnvVars env,
+                                            String server, String port, RSAKey rsaKey) {
+
+    if(rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.ID) {
+      List<? extends FileCredentials> credentials = availableFileCredentials(owner, env.expand(String.format("sscm://%s:%s", server, port)));
+
+      for(FileCredentials fc : credentials) {
+        if(fc.getId().equals(rsaKey.getRsaKeyValue())) {
+          return fc;
+        }
+      }
+    }
+    return null;
+  }
 }

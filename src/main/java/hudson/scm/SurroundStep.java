@@ -1,12 +1,9 @@
 package hudson.scm;
 
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.Item;
 import hudson.model.Job;
 import hudson.scm.config.RSAKey;
 import hudson.util.ListBoxModel;
@@ -22,8 +19,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Runs Surround SCM using {@link SurroundSCM}
@@ -115,7 +110,6 @@ public class SurroundStep extends SCMStep {
     if(rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.Path) {
       result = rsaKey.getRsaKeyValue();
     }
-    Logger.getLogger(SurroundSCM.class.toString()).log(Level.SEVERE, String.format("getRsaKeyPath - Value: [%s]", result));
     return result;
   }
 
@@ -125,40 +119,25 @@ public class SurroundStep extends SCMStep {
     if(rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.ID) {
       result = rsaKey.getRsaKeyValue();
     }
-    Logger.getLogger(SurroundSCM.class.toString()).log(Level.SEVERE, String.format("getRsaKeyFileId - Value: [%s]", result));
     return result;
   }
 
-  // TODO: Somehow make this a shared function between SurroundSCM and SurroundStep
+  @Exported
   @CheckForNull
   public StandardUsernameCredentials getCredentials(Job<?,?> owner, EnvVars env) {
     String server = SSCMUtils.getServerFromURL(url);
     String port = SSCMUtils.getPortFromURL(url);
 
-    if(credentialsId != null) {
-      for (StandardUsernameCredentials c : SurroundSCM.availableCredentials(owner, env.expand("sscm://" + server + ":" + port))) { // TODO: This seems like a royal hack.
-        if(c.getId().equals(credentialsId)) {
-          return c;
-        }
-      }
-    }
-    return null;
+    return SSCMUtils.getCredentials(owner, env, server, port, credentialsId);
   }
 
-  // TODO: Somehow make this a shared function between SurroundSCM and SurroundStep
+  @Exported
   @CheckForNull
   public FileCredentials getFileCredentials(Job<?,?> owner, EnvVars env) {
     String server = SSCMUtils.getServerFromURL(url);
     String port = SSCMUtils.getPortFromURL(url);
 
-    if(rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.ID) {
-      for(FileCredentials fc : SurroundSCM.availableFileCredentials(owner, env.expand(String.format("sscm://%s:%s", server, port)))) { // TODO: This seems like a royal hack
-        if(fc.getId().equals(rsaKey.getRsaKeyValue())) {
-          return fc;
-        }
-      }
-    }
-    return null;
+    return SSCMUtils.getFileCredentials(owner, env, server ,port, rsaKey);
   }
 
   @Extension
@@ -174,31 +153,25 @@ public class SurroundStep extends SCMStep {
       return "Surround SCM";
     }
 
-    // TODO: Somehow make this a shared function between SurroundSCM and SurroundStep
     /**
      * This populates the Username//Password credential dropdown on the config page.
      *
      * @return  Returns a list of credentials to populate the combobox with.
      */
+    @Exported
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job<?,?> owner, @QueryParameter String source)
     {
-      if(owner == null || !owner.hasPermission(Item.EXTENDED_READ)) {
-        return new ListBoxModel();
-      }
-      return new StandardUsernameListBoxModel().withEmptySelection().withAll(SurroundSCM.availableCredentials(owner, new EnvVars().expand(source)));
+      return SSCMUtils.doFillCredentialsIdItems(owner, source);
     }
 
-    // TODO: Somehow make this a shared function between SurroundSCM and SurroundStep
     /**
      * This populates the rsaKeyFileId dropdown with a list of 'FileCredentials' that could be used.
      *
      * @return  Returns a list of FileCredential objects that have been configured.
      */
+    @Exported
     public ListBoxModel doFillRsaKeyFileIdItems(@AncestorInPath Job<?, ?> owner, @QueryParameter String source) {
-      if(owner == null || !owner.hasPermission(Item.EXTENDED_READ)) {
-        return new ListBoxModel();
-      }
-      return new StandardListBoxModel().withEmptySelection().withAll(SurroundSCM.availableFileCredentials(owner, new EnvVars().expand(source)));
+      return SSCMUtils.doFillRsaKeyFileIdItems(owner, source);
     }
   }
 }

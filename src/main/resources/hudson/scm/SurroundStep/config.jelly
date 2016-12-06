@@ -9,10 +9,10 @@
       <c:select />
    </f:entry>
 
-   <f:dropdownList name="rsaKey" title="${%Use RSA key file}">
+   <f:dropdownList name="rsaKey" title="${%RSA key file}">
       <f:dropdownListBlock title="${%- none -}" value="0" selected="${!instance.hasRsaKeyConfigured()}" />
       <f:dropdownListBlock  title="${%Path to RSA key file}" value="2" selected="${instance.isUsingRsaKeyPath()}">
-         <f:entry field="rsaKeyFilePath">
+         <f:entry title="${%Path}" field="rsaKeyFilePath">
             <f:textbox />
          </f:entry>
       </f:dropdownListBlock>

@@ -1,12 +1,8 @@
 package hudson.scm;
 
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.*;
 import hudson.model.*;
 import hudson.scm.config.RSAKey;
@@ -24,7 +20,6 @@ import javax.annotation.Nullable;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -154,13 +149,6 @@ public final class SurroundSCM extends SCM {
   @Deprecated
   public SurroundSCM() { }
 
-  /*package*/ static List<? extends StandardUsernameCredentials> availableCredentials(Job<?, ?> owner, String source) {
-    return CredentialsProvider.lookupCredentials(StandardUsernameCredentials.class, owner, null, URIRequirementBuilder.fromUri(source).build());
-  }
-
-  /*package*/ static List<? extends FileCredentials> availableFileCredentials(Job<?, ?> owner, String source) {
-    return CredentialsProvider.lookupCredentials(FileCredentials.class, owner, null, URIRequirementBuilder.fromUri(source).build());
-  }
 
   /**
    * @deprecated Use getCredentialsId instead of this function. This was left in place to support legacy
@@ -640,9 +628,6 @@ public final class SurroundSCM extends SCM {
         sscm = SurroundTool.getDefaultInstallation();
       }
     }
-    // TODO_PTV: Is it safe to save off the tool name so we don't need to perform a lookup again?
-    //if(sscm != null)
-    //  sscm_tool_name = sscm.getName();
 
     return sscm;
   }
@@ -730,26 +715,12 @@ public final class SurroundSCM extends SCM {
 
   @CheckForNull
   private StandardUsernameCredentials getCredentials(Job<?, ?> owner, EnvVars env) {
-    if (credentialsId != null) {
-      for (StandardUsernameCredentials c : availableCredentials(owner, env.expand("sscm://" + server + ":" + serverPort))) { // TODO: This seems like a royal hack.
-        if (c.getId().equals(credentialsId)) {
-          return c;
-        }
-      }
-    }
-    return null;
+    return SSCMUtils.getCredentials(owner, env, server, serverPort, credentialsId);
   }
 
   @CheckForNull
   private FileCredentials getFileCredentials(Job<?, ?> owner, EnvVars env) {
-    if (rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.ID) {
-      for (FileCredentials fc : availableFileCredentials(owner, env.expand(String.format("sscm://%s:%s", server, serverPort)))) { // TODO: This seems like a royal hack
-        if (fc.getId().equals(rsaKey.getRsaKeyValue())) {
-          return fc;
-        }
-      }
-    }
-    return null;
+    return SSCMUtils.getFileCredentials(owner, env, server, serverPort, rsaKey);
   }
 
   /**
@@ -849,10 +820,7 @@ public final class SurroundSCM extends SCM {
      */
     @SuppressWarnings("unused") // This is called via Stapler
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job<?, ?> owner, @QueryParameter String source) {
-      if (owner == null || !owner.hasPermission(Item.EXTENDED_READ)) {
-        return new ListBoxModel();
-      }
-      return new StandardUsernameListBoxModel().withEmptySelection().withAll(availableCredentials(owner, new EnvVars().expand(source)));
+      return SSCMUtils.doFillCredentialsIdItems(owner, source);
     }
 
     /**
@@ -862,10 +830,7 @@ public final class SurroundSCM extends SCM {
      */
     @SuppressWarnings("unused") // This is called via Stapler
     public ListBoxModel doFillRsaKeyFileIdItems(@AncestorInPath Job<?, ?> owner, @QueryParameter String source) {
-      if (owner == null || !owner.hasPermission(Item.EXTENDED_READ)) {
-        return new ListBoxModel();
-      }
-      return new StandardListBoxModel().withEmptySelection().withAll(availableFileCredentials(owner, new EnvVars().expand(source)));
+      return SSCMUtils.doFillRsaKeyFileIdItems(owner, source);
     }
 
     /**
