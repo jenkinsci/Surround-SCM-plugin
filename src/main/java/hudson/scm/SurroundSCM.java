@@ -628,7 +628,7 @@ public final class SurroundSCM extends SCM {
       Jenkins jenkinsInstance = Jenkins.getInstance();
       if(jenkinsInstance != null)
       {
-        SurroundTool.DescriptorImpl sscmToolDesc = Jenkins.getInstance().getDescriptorByType(SurroundTool.DescriptorImpl.class);
+        SurroundTool.DescriptorImpl sscmToolDesc = jenkinsInstance.getDescriptorByType(SurroundTool.DescriptorImpl.class);
         if(sscmToolDesc != null)
           sscm = sscmToolDesc.getInstallation(sscm_tool_name);
       }
