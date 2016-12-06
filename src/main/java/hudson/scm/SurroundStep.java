@@ -33,7 +33,8 @@ public class SurroundStep extends SCMStep {
   {
     url = Util.fixEmptyAndTrim(url);
     try {
-      url = URLDecoder.decode(url, "UTF-8");
+      if(url != null)
+        url = URLDecoder.decode(url, "UTF-8");
     } catch (UnsupportedEncodingException e) {
       e.printStackTrace();
     }

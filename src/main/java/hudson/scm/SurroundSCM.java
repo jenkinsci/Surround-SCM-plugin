@@ -622,7 +622,9 @@ public final class SurroundSCM extends SCM {
     if (sscm_tool_name == null || sscm_tool_name.isEmpty()) {
       sscm = SurroundTool.getDefaultInstallation();
     } else {
-      sscm = Jenkins.getInstance().getDescriptorByType(SurroundTool.DescriptorImpl.class).getInstallation(sscm_tool_name);
+      SurroundTool.DescriptorImpl sscmToolDesc = Jenkins.getInstance().getDescriptorByType(SurroundTool.DescriptorImpl.class);
+      if(sscmToolDesc != null)
+        sscm = sscmToolDesc.getInstallation(sscm_tool_name);
       if (sscm == null) {
         listener.getLogger().println(String.format("Selected sscm installation [%s] does not exist. Using Default", sscm_tool_name));
         sscm = SurroundTool.getDefaultInstallation();
