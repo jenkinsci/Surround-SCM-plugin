@@ -29,8 +29,8 @@
       <workflow.version>1.14.2</workflow.version>
    </properties>
 
-   <name>Seapine Surround SCM - Jenkins Plugin</name>
-   <description>Jenkins plugin for Surround SCM</description>
+   <name>Seapine Surround SCM Plug-in</name>
+   <description>Integrates Surround SCM for source control with Jenkins.</description>
    <url>http://wiki.jenkins-ci.org/display/JENKINS/Surround+SCM+Plugin</url>
 
    <developers>
