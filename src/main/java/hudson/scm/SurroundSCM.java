@@ -178,6 +178,9 @@ public final class SurroundSCM extends SCM {
     String result = null;
     if (rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.Path) {
       result = rsaKey.getRsaKeyValue();
+    } else if(rsaKeyPath != null && !rsaKeyPath.isEmpty())
+    {
+      result = rsaKeyPath;
     }
     return result;
   }
@@ -248,7 +251,13 @@ public final class SurroundSCM extends SCM {
 
   @Exported
   public boolean isUsingRsaKeyPath() {
-    return rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.Path;
+    // This function is a bit screwy due to needing to handle legacy plugin configurations.  In old configurations
+    // we didn't have a plain 'rsaKey' variable, but instead had 'rsaKeyPath'.  We need to select the 'Path'
+    // in two situations:
+    // 1. rsaKey exists & is a Path type.
+    // 2. rsaKeyPath exists & is not blank.
+    boolean result = rsaKeyPath != null && !rsaKeyPath.isEmpty();
+    return result || (rsaKey != null && rsaKey.getRsaKeyType() == RSAKey.Type.Path);
   }
 
   @Exported
