@@ -292,7 +292,9 @@ public final class SurroundSCM extends SCM {
    * of the rsaKey storage.
    */
   @DataBoundSetter
-  public void setRsaKeyPath(String rsaKeyPath) { setRsaKeyFilePath(rsaKeyPath); }
+  public void setRsaKeyPath(String rsaKeyPath) {
+    setRsaKeyFilePath(rsaKeyPath);
+  }
 
   @Override
   public SCMDescriptor<?> getDescriptor() {
@@ -787,8 +789,10 @@ public final class SurroundSCM extends SCM {
         default:
           result = null;
       }
+    }  else if(rsaKeyPath != null && !rsaKeyPath.isEmpty())
+    {
+      result = rsaKeyPath;
     }
-
     return result;
   }
 
