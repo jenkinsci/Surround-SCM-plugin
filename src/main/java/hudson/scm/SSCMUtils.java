@@ -180,7 +180,7 @@ public class SSCMUtils {
   }
 
   public static ListBoxModel doFillCredentialsItems(@AncestorInPath Item context, @QueryParameter String remote, Class credentialType) {
-    if (context == null && !Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER) ||
+    if (context == null && Jenkins.getInstance() != null && !Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER) ||
             context != null && !context.hasPermission(Item.EXTENDED_READ)) {
       return new StandardListBoxModel();
     }
