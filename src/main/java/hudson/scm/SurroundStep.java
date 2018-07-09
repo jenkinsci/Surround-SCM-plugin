@@ -4,6 +4,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Util;
+import hudson.model.Item;
 import hudson.model.Job;
 import hudson.scm.config.RSAKey;
 import hudson.util.ListBoxModel;
@@ -160,9 +161,8 @@ public class SurroundStep extends SCMStep {
      * @return  Returns a list of credentials to populate the combobox with.
      */
     @Exported
-    public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job<?,?> owner, @QueryParameter String source)
-    {
-      return SSCMUtils.doFillCredentialsIdItems(owner, source);
+    public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
+      return SSCMUtils.doFillCredentialsIdItems(context, remote);
     }
 
     /**
@@ -171,8 +171,8 @@ public class SurroundStep extends SCMStep {
      * @return  Returns a list of FileCredential objects that have been configured.
      */
     @Exported
-    public ListBoxModel doFillRsaKeyFileIdItems(@AncestorInPath Job<?, ?> owner, @QueryParameter String source) {
-      return SSCMUtils.doFillRsaKeyFileIdItems(owner, source);
+    public ListBoxModel doFillRsaKeyFileIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
+      return SSCMUtils.doFillRsaKeyFileIdItems(context, remote);
     }
   }
 }

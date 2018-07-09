@@ -1,9 +1,9 @@
 package hudson.scm;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
+import com.cloudbees.plugins.credentials.common.*;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -12,6 +12,7 @@ import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Node;
 import hudson.scm.config.RSAKey;
+import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
@@ -19,6 +20,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.CheckForNull;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -177,28 +179,46 @@ public class SSCMUtils {
     return j;
   }
 
+  public static ListBoxModel doFillCredentialsItems(@AncestorInPath Item context, @QueryParameter String remote, Class credentialType) {
+    if (context == null && !Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER) ||
+            context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+      return new StandardListBoxModel();
+    }
+    List<DomainRequirement> domainRequirements;
+    if (remote == null) {
+      domainRequirements = Collections.<DomainRequirement>emptyList();
+    } else {
+      domainRequirements = URIRequirementBuilder.fromUri(remote.trim()).build();
+    }
+    return new StandardListBoxModel()
+            .withEmptySelection()
+            .withMatching(
+                    CredentialsMatchers.instanceOf(credentialType),
+                    CredentialsProvider.lookupCredentials(StandardCredentials.class, context, ACL.SYSTEM, domainRequirements)
+            );
+  }
+
   /**
    * This populates the Username//Password credential dropdown on the config page.
    *
+   * @param context - Owner
+   * @param remote - Source
    * @return  Returns a list of credentials to populate the combobox with.
    */
-  public static ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job<?,?> owner, @QueryParameter String source)
+  public static ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context, @QueryParameter String remote)
   {
-    if(owner == null || !owner.hasPermission(Item.EXTENDED_READ)) {
-      return new ListBoxModel();
-    }
-    return new StandardUsernameListBoxModel().withEmptySelection().withAll(availableCredentials(owner, new EnvVars().expand(source)));
+    return doFillCredentialsItems(context, remote, StandardUsernamePasswordCredentials.class);
   }
+
   /**
    * This populates the rsaKeyFileId dropdown with a list of 'FileCredentials' that could be used.
    *
+   * @param context - Owner
+   * @param remote - Source
    * @return  Returns a list of FileCredential objects that have been configured.
    */
-  public static ListBoxModel doFillRsaKeyFileIdItems(@AncestorInPath Job<?, ?> owner, @QueryParameter String source) {
-    if(owner == null || !owner.hasPermission(Item.EXTENDED_READ)) {
-      return new ListBoxModel();
-    }
-    return new StandardListBoxModel().withEmptySelection().withAll(availableFileCredentials(owner, new EnvVars().expand(source)));
+  public static ListBoxModel doFillRsaKeyFileIdItems(@AncestorInPath Item context, @QueryParameter String remote) {
+    return doFillCredentialsItems(context, remote, FileCredentials.class);
   }
 
   /**

@@ -48,6 +48,7 @@ public class RSAKey extends AbstractDescribableImpl<RSAKey> implements Serializa
 
   /**
    * This solely exists to fix the stupid Snippet Generator from crashing when asking about this function.
+   * @return Returns 'null'
    */
   @Exported
   public String getRsaKeyFileId() { return null; }
@@ -60,6 +61,7 @@ public class RSAKey extends AbstractDescribableImpl<RSAKey> implements Serializa
 
   /**
    * This solely exists to fix the stupid Snippet Generator from crashing when asking about this function.
+   * @return Returns 'null'
    */
   @Exported
   public String getRsaKeyFilePath() { return null; }

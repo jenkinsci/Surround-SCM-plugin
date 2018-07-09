@@ -42,6 +42,8 @@ public class EnvVarsUtils {
      *
      * <p>This is a fix for JENKINS-10045.</p>
      *
+     * @param env - Environment variables
+     * @param all - Map of strings to strings?
      * @see EnvVars#overrideAll(Map)
      */
     public static void overrideAll(EnvVars env, Map<String,String> all) {
@@ -53,6 +55,9 @@ public class EnvVarsUtils {
     /**
      * @see #override(hudson.EnvVars, String, String)
      * @see EnvVars#override(String, String)
+     * @param env - Environment variables
+     * @param key - Key
+     * @param value - Value
      */
     private static void override(EnvVars env, String key, String value) {
         // this implementation doesn't  drop empty variables (JENKINS-10045)
