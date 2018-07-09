@@ -20,6 +20,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -179,9 +180,17 @@ public class SSCMUtils {
     return j;
   }
 
-  public static ListBoxModel doFillCredentialsItems(@AncestorInPath Item context, @QueryParameter String remote, Class credentialType) {
-    if (context == null && Jenkins.getInstance() != null && !Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER) ||
-            context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+  /**
+   *
+   * @param context - Context
+   * @param remote - Remtoe path
+   * @param credentialType - Type of credentials
+   * @return - Returns a properly populated listbox based on the current context
+   */
+  public static ListBoxModel doFillCredentialsItems(@AncestorInPath Item context, @QueryParameter String remote, @Nonnull Class credentialType) {
+    Jenkins j = Jenkins.getInstance();
+    if (context == null || j != null && !j.hasPermission(Jenkins.ADMINISTER) ||
+            !context.hasPermission(Item.EXTENDED_READ)) {
       return new StandardListBoxModel();
     }
     List<DomainRequirement> domainRequirements;
