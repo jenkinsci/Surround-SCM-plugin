@@ -5,5 +5,5 @@
 -->
 <?jelly escape-by-default='true'?>
 <div>
-  This plugin integrates the source control tool <a href="http://www.seapine.com/surroundscm.html">Surround SCM</a> to Hudson.
+  This plugin integrates the source control tool <a href="https://www.perforce.com/products/surround-scm">Surround SCM</a> to Jenkins.
 </div>
