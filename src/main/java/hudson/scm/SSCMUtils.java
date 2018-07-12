@@ -183,14 +183,14 @@ public class SSCMUtils {
   /**
    *
    * @param context - Context
-   * @param remote - Remtoe path
+   * @param remote - Remote path
    * @param credentialType - Type of credentials
    * @return - Returns a properly populated listbox based on the current context
    */
   public static ListBoxModel doFillCredentialsItems(@AncestorInPath Item context, @QueryParameter String remote, @Nonnull Class credentialType) {
     Jenkins j = Jenkins.getInstance();
-    if (context == null || j != null && !j.hasPermission(Jenkins.ADMINISTER) ||
-            !context.hasPermission(Item.EXTENDED_READ)) {
+    if (context == null && !j.hasPermission(Jenkins.ADMINISTER) ||
+            context != null && !context.hasPermission(Item.EXTENDED_READ)) {
       return new StandardListBoxModel();
     }
     List<DomainRequirement> domainRequirements;
